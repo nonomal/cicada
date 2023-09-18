@@ -1,13 +1,16 @@
 import styled from 'styled-components';
-import Cover from '@/components/cover';
 import { PLAYER_PATH, ROOT_PATH } from '@/constants/route';
 import { NavLink } from 'react-router-dom';
 import { CSSVariable } from '@/global_style';
 import ellipsis from '@/style/ellipsis';
+import getResizedImage from '@/server/asset/get_resized_image';
 import { Musicbill as MusicbillType } from '../../constants';
+import MusicbillCover from '../../components/musicbill_cover';
 
+const COVER_SIZE = 26;
 const Style = styled(NavLink)`
-  padding: 5px 20px;
+  padding: 5px 10px;
+  margin: 0 10px;
 
   display: flex;
   align-items: center;
@@ -36,32 +39,26 @@ const Style = styled(NavLink)`
     background-color: ${CSSVariable.BACKGROUND_COLOR_LEVEL_TWO};
   }
 
-  &.public {
-    > .cover {
-      outline: 2px solid ${CSSVariable.COLOR_PRIMARY};
-    }
-  }
-
   &.active {
     color: #fff;
     background-color: ${CSSVariable.COLOR_PRIMARY} !important;
-
-    > .cover {
-      outline-color: #fff;
-    }
   }
 `;
 
 function Musicbill({ musicbill }: { musicbill: MusicbillType }) {
   return (
     <Style
-      className={musicbill.public ? 'public' : ''}
       to={`${ROOT_PATH.PLAYER}${PLAYER_PATH.MUSICBILL.replace(
         ':id',
         musicbill.id,
       )}`}
     >
-      <Cover size={28} src={musicbill.cover} className="cover" />
+      <MusicbillCover
+        size={COVER_SIZE}
+        src={getResizedImage({ url: musicbill.cover, size: COVER_SIZE * 2 })}
+        publiz={musicbill.public}
+        shared={musicbill.sharedUserList.length > 0}
+      />
       <div className="name">{musicbill.name}</div>
     </Style>
   );

@@ -36,7 +36,7 @@ const mainConfig = {
   experiments,
   entry: path.join(__dirname, '../src/index.tsx'),
   output: {
-    path: path.join(__dirname, '../../../pwa'),
+    path: path.join(__dirname, '../../../dist/pwa'),
     filename: '[name]_[contenthash].js',
     chunkFilename: 'chunk_[name]_[contenthash].js',
     publicPath: '/',
@@ -67,8 +67,8 @@ const mainConfig = {
         exclude: [/node_modules/],
       },
       {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        test: /\.s?css$/,
+        use: ['style-loader', 'css-loader', 'sass-loader'],
       },
       {
         test: /\.(jpe?g|png|svg|gif)$/,

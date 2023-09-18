@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import notice from '@/utils/notice';
 import getRandomInteger from '#/utils/generate_random_integer';
 import getRandomString from '#/utils/generate_random_string';
+import { t } from '@/i18n';
 import eventemitter, { EventType } from './eventemitter';
-import { MusicWithIndex, QueueMusic } from './constants';
+import { MusicWithSingerAliases, QueueMusic } from './constants';
 
-export default (playlist: MusicWithIndex[]) => {
+export default (playlist: MusicWithSingerAliases[]) => {
   const [playqueue, setPlayqueue] = useState<QueueMusic[]>([]);
   const [currentPosition, setCurrentPosition] = useState(-1);
 
@@ -136,7 +137,7 @@ export default (playlist: MusicWithIndex[]) => {
       () => {
         if (currentPosition === playqueue.length - 1) {
           if (!playlist.length) {
-            return notice.error('空的播放列表');
+            return notice.error(t('empty_playlist'));
           }
           const music = playlist[getRandomInteger(0, playlist.length)];
           setPlayqueue(
@@ -193,24 +194,6 @@ export default (playlist: MusicWithIndex[]) => {
     );
     return unlistenActionInsertMusicToPlayqueue;
   }, [playqueue, currentPosition]);
-
-  useEffect(() => {
-    const unlistenMusicUpdated = eventemitter.listen(
-      EventType.MUSIC_UPDATED,
-      ({ music }) =>
-        setPlayqueue((pq) =>
-          pq.map((m) =>
-            m.id === music.id
-              ? {
-                  ...m,
-                  music,
-                }
-              : m,
-          ),
-        ),
-    );
-    return unlistenMusicUpdated;
-  }, []);
 
   return {
     playqueue,

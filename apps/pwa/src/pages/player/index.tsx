@@ -1,35 +1,35 @@
 import styled from 'styled-components';
-import { Helmet } from 'react-helmet';
 import withLogin from '@/platform/with_login';
 import { useEffect } from 'react';
 import PageContainer from '@/components/page_container';
+import useDocumentTitle from '@/utils/use_document_title';
+import { t } from '@/i18n';
+import capitalize from '#/utils/capitalize';
 import Sidebar from './sidebar';
 import Header from './header';
 import Controller from './controller';
 import Route from './route';
 import useMusicbillList from './use_musicbill_list';
-import useAudioState from './use_audio_state';
 import usePlaylist from './use_playlist';
 import usePlayqueue from './use_playqueue';
-import usePlayMode from './use_play_mode';
 import Context from './context';
-import Audio from './audio';
+import useAudio from './use_audio';
 import useMediaSession from './use_media_session';
 import MusicDrawer from './music_drawer';
 import PlaylistPlayqueueDrawer from './playlist_playqueue_drawer';
-import AddMusicToMusicbillDrawer from './add_music_to_musicbill_drawer';
+import MusicbillMusicDrawer from './musicbill_music_drawer';
 import MusicbillOrderDrawer from './musicbilll_order_drawer';
+import MusicbillSharedUserDrawer from './musicbill_shared_user_drawer';
 import { QueueMusic } from './constants';
 import LyricPanel from './lyric_panel';
 import useKeyboard from './use_keyboard';
-import MusicDownloadDialog from './music_download_dialog';
 import SingerDrawer from './singer_drawer';
-import EditDialog from './edit_dialog';
 import ProfileEditPopup from './profile_edit_popup';
 import UserDrawer from './user_drawer';
-import MusicbillDrawer from './musicbill_drawer';
+import PublicMusicbillDrawer from './public_musicbill_drawer';
 import useLyricPanelOpen from './use_lyric_panel_open';
 import e, { EventType } from './eventemitter';
+import SingerModifyRecordDrawer from './singer_modify_record_drawer';
 
 const Style = styled(PageContainer)`
   display: flex;
@@ -56,13 +56,9 @@ const Style = styled(PageContainer)`
 `;
 
 function Wrapper() {
+  useDocumentTitle(capitalize(t('cicada')));
+
   const { status: getMusicbillListStatus, musicbillList } = useMusicbillList();
-  const playMode = usePlayMode();
-  const {
-    loading: audioLoading,
-    paused: audioPaused,
-    duration: audioDuration,
-  } = useAudioState();
   const playlist = usePlaylist();
   const { playqueue, currentPosition: currentPlayqueuePosition } =
     usePlayqueue(playlist);
@@ -70,6 +66,12 @@ function Wrapper() {
     | QueueMusic
     | undefined;
   const lyricPanelOpen = useLyricPanelOpen();
+  const {
+    loading: audioLoading,
+    paused: audioPaused,
+    duration: audioDuration,
+    bufferedPercent: audioBufferedPercent,
+  } = useAudio({ queueMusic });
 
   useKeyboard({ paused: audioPaused, queueMusic, musicbillList });
   useMediaSession(queueMusic);
@@ -88,20 +90,16 @@ function Wrapper() {
         audioLoading,
         audioPaused,
         audioDuration,
+        audioBufferedPercent,
 
         playlist,
 
         playqueue,
         currentPlayqueuePosition,
 
-        playMode,
-
         lyricPanelOpen,
       }}
     >
-      <Helmet>
-        <title>知了</title>
-      </Helmet>
       <Style>
         <div className="container">
           <Sidebar />
@@ -122,19 +120,15 @@ function Wrapper() {
       <SingerDrawer />
       <MusicDrawer />
       <PlaylistPlayqueueDrawer />
-      <AddMusicToMusicbillDrawer />
+      <MusicbillMusicDrawer />
       <MusicbillOrderDrawer />
-      <MusicDownloadDialog />
       <UserDrawer />
-      <MusicbillDrawer />
+      <PublicMusicbillDrawer />
+      <MusicbillSharedUserDrawer />
+      <SingerModifyRecordDrawer />
 
       {/* fixed z-index */}
       <ProfileEditPopup />
-      <EditDialog />
-
-      {queueMusic ? (
-        <Audio playMode={playMode} queueMusic={queueMusic} />
-      ) : null}
     </Context.Provider>
   );
 }

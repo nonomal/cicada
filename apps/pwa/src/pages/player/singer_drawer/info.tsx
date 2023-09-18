@@ -1,10 +1,12 @@
 import { CSSVariable } from '@/global_style';
 import styled from 'styled-components';
 import Cover from '@/components/cover';
-import { SingerDetail } from './constants';
+import { Singer } from './constants';
 
 const Style = styled.div`
   position: relative;
+
+  font-size: 0;
 
   > .info {
     position: absolute;
@@ -28,7 +30,7 @@ const Style = styled.div`
   }
 `;
 
-function Info({ singer }: { singer: SingerDetail }) {
+function Info({ singer }: { singer: Singer }) {
   return (
     <Style>
       <Cover src={singer.avatar} size="100%" />

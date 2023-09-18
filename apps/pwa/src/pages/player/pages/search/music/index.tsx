@@ -11,6 +11,7 @@ import { Query } from '@/constants';
 import { CSSProperties, useContext } from 'react';
 import Button, { Variant } from '@/components/button';
 import { PLAYER_PATH, ROOT_PATH } from '@/constants/route';
+import autoScrollbar from '@/style/auto_scrollbar';
 import {
   MINI_MODE_TOOLBAR_HEIGHT,
   PAGE_SIZE,
@@ -32,6 +33,7 @@ const CardContainer = styled(Container)`
 `;
 const MusicContainer = styled(Container)`
   overflow: auto;
+  ${autoScrollbar}
 
   ${({ theme: { miniMode } }) => css`
     padding-top: ${miniMode ? MINI_MODE_TOOLBAR_HEIGHT : TOOLBAR_HEIGHT}px;
@@ -90,9 +92,10 @@ function Wrapper() {
     return (
       <MusicContainer style={style}>
         <div className="list">
-          {d.value!.musicList.map((music) => (
+          {d.value.musicList.map((music, index) => (
             <Music
               key={music.id}
+              index={d.value.total - PAGE_SIZE * (page - 1) - index}
               music={music}
               active={playqueue[currentPlayqueuePosition]?.id === music.id}
             />

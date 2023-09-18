@@ -1,23 +1,31 @@
-import day from '#/utils/day';
-import excludeProperty from '#/utils/exclude_property';
-import logger from '#/utils/logger';
-import getSingerDetail from '@/server/get_singer_detail';
-import getRandomCover from '@/utils/get_random_cover';
+import logger from '@/utils/logger';
+import getSinger from '@/server/api/get_singer';
 import { useCallback, useEffect, useState } from 'react';
-import { SingerDetail } from './constants';
+import { Singer } from './constants';
 import playerEventemitter, {
   EventType as PlayerEventType,
 } from '../eventemitter';
 
-type Data = {
-  error: Error | null;
-  loading: boolean;
-  singer: SingerDetail | null;
-};
+type Data =
+  | {
+      error: null;
+      loading: true;
+      value: null;
+    }
+  | {
+      error: Error;
+      loading: false;
+      value: null;
+    }
+  | {
+      error: null;
+      loading: false;
+      value: Singer;
+    };
 const dataLoading: Data = {
   error: null,
   loading: true,
-  singer: null,
+  value: null,
 };
 
 export default (singerId: string) => {
@@ -25,26 +33,18 @@ export default (singerId: string) => {
   const getData = useCallback(async () => {
     setData(dataLoading);
     try {
-      const singer = await getSingerDetail(singerId);
+      const singer = await getSinger(singerId);
       setData({
         error: null,
         loading: false,
-        singer: {
-          ...excludeProperty(singer, ['createTimestamp']),
-          avatar: singer.avatar || getRandomCover(),
-          musicList: singer.musicList.map((music, index) => ({
-            ...music,
-            index: singer.musicList.length - index,
-          })),
-          createTime: day(singer.createTimestamp).format('YYYY-MM-DD'),
-        },
+        value: singer,
       });
     } catch (error) {
-      logger.error(error, '获取歌手详情失败');
+      logger.error(error, 'Fail to get singer');
       setData({
         error,
         loading: false,
-        singer: null,
+        value: null,
       });
     }
   }, [singerId]);
@@ -56,14 +56,34 @@ export default (singerId: string) => {
   useEffect(() => {
     const unlistenSingerUpdated = playerEventemitter.listen(
       PlayerEventType.SINGER_UPDATED,
-      ({ singer }) => {
-        if (singer.id === singerId) {
+      (payload) => {
+        if (payload.id === singerId) {
           getData();
         }
       },
     );
     return unlistenSingerUpdated;
   }, [getData, singerId]);
+
+  useEffect(() => {
+    const musicUpdatedOrDeleted = ({ id }: { id: string }) => {
+      if (data.value?.musicList.find((m) => m.id === id)) {
+        getData();
+      }
+    };
+    const unlistenMusicUpdated = playerEventemitter.listen(
+      PlayerEventType.MUSIC_UPDATED,
+      musicUpdatedOrDeleted,
+    );
+    const unlistenMusicDeleted = playerEventemitter.listen(
+      PlayerEventType.MUSIC_DELETED,
+      musicUpdatedOrDeleted,
+    );
+    return () => {
+      unlistenMusicUpdated();
+      unlistenMusicDeleted();
+    };
+  }, [data, getData]);
 
   return { data, reload: getData };
 };

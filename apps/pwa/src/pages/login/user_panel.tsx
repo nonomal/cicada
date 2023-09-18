@@ -2,18 +2,20 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import p from '@/global_states/profile';
 import { Profile as ProfileType } from '@/constants/user';
-import getRandomCover from '@/utils/get_random_cover';
+import DefaultCover from '@/asset/default_cover.jpeg';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import parseSearch from '@/utils/parse_search';
 import { Query } from '@/constants';
 import Cover, { Shape } from '@/components/cover';
 import Slider from '@/components/slider';
+import { t } from '@/i18n';
+import upperCaseFirstLetter from '#/utils/upper_case_first_letter';
 import Paper from './paper';
 import Logo from './logo';
 
 const REDIRECT_DURATION = 5000;
 const NICKNAME_MAX_LENGTH = 10;
-const DEFAULT_AVATAR = getRandomCover();
+const DEFAULT_AVATAR = DefaultCover;
 const Style = styled(Paper)`
   display: flex;
   flex-direction: column;
@@ -71,7 +73,7 @@ function Profile({ profile }: { profile: ProfileType }) {
         shape={Shape.CIRCLE}
       />
       <div className="text">
-        🎉 欢迎回来,{' '}
+        🎉 {upperCaseFirstLetter(t('welcome_back'))},{' '}
         {profile.nickname.length > NICKNAME_MAX_LENGTH
           ? `${profile.nickname.slice(0, NICKNAME_MAX_LENGTH)}...`
           : profile.nickname}

@@ -15,6 +15,7 @@ import {
   MdTextFields,
   MdImage,
   MdCallSplit,
+  MdOutlineCalendarToday,
 } from 'react-icons/md';
 import { CSSVariable } from '@/global_style';
 import styled from 'styled-components';
@@ -28,30 +29,34 @@ import {
   ALIAS_MAX_LENGTH,
   MUSIC_MAX_ALIAS_COUNT,
   SEARCH_KEYWORD_MAX_LENGTH as MUSIC_SEARCH_KEYWORD_MAX_LENGTH,
+  YEAR_MIN,
+  YEAR_MAX,
 } from '#/constants/music';
-import uploadAsset from '@/server/upload_asset';
+import uploadAsset from '@/server/form/upload_asset';
 import { AssetType, ASSET_TYPE_MAP } from '#/constants';
-import updateMusic from '@/server/update_music';
+import updateMusic from '@/server/api/update_music';
 import stringArrayEqual from '#/utils/string_array_equal';
 import dialog from '@/utils/dialog';
-import deleteMusic from '@/server/delete_music';
-import logger from '#/utils/logger';
+import deleteMusic from '@/server/api/delete_music';
+import logger from '@/utils/logger';
 import { Option } from '@/components/multiple_select';
-import searchSingerRequest from '@/server/search_singer';
-import searchMusicRequest from '@/server/search_music';
+import searchSingerRequest from '@/server/api/search_singer';
+import searchMusicRequest from '@/server/api/search_music';
 import { SEARCH_KEYWORD_MAX_LENGTH as SINGER_SEARCH_KEYWORD_MAX_LENGTH } from '#/constants/singer';
 import absoluteFullSize from '@/style/absolute_full_size';
 import useTitlebarArea from '@/utils/use_titlebar_area_rect';
+import { Variant } from '@/components/button';
+import getResizedImage from '@/server/asset/get_resized_image';
+import { t } from '@/i18n';
+import autoScrollbar from '@/style/auto_scrollbar';
 import { Music, ZIndex } from '../constants';
 import { MusicDetail } from './constants';
 import e, { EventType } from './eventemitter';
 import playerEventemitter, {
   EventType as PlayerEventType,
-  EditDialogType,
 } from '../eventemitter';
-import { emitMusicUpdated } from '../utils';
 import MusicInfo from '../components/music_info';
-import CreateUser from './create_user';
+import MissingSinger from '../components/missing_singer';
 
 interface Singer {
   id: string;
@@ -73,20 +78,20 @@ const searchSinger = (search: string): Promise<Option<Singer>[]> => {
     data.singerList.map(formatSingerToMultipleSelectOption),
   );
 };
-const createUserStyle: CSSProperties = {
-  padding: '15px 20px',
-};
-
+const emitMusicUpdated = (id: string) =>
+  playerEventemitter.emit(PlayerEventType.MUSIC_UPDATED, { id });
 const formatMusicTouMultipleSelectOtion = (music: Music): Option<Music> => ({
   key: music.id,
   label: `${music.name} - ${music.singers.map((s) => s.name).join(',')}`,
   value: music,
 });
+const itemStyle: CSSProperties = { margin: '0 10px' };
 
 const Style = styled.div`
   ${absoluteFullSize}
 
   overflow: auto;
+  ${autoScrollbar}
 `;
 const maskProps: {
   style: CSSProperties;
@@ -144,45 +149,53 @@ function EditMenu({ music }: { music: MusicDetail }) {
         }}
         onClick={onClose}
       >
-        <MusicInfo music={music} />
-        <CreateUser
-          user={music.createUser}
-          createTime={music.createTime}
-          style={createUserStyle}
+        <MusicInfo
+          style={itemStyle}
+          musicId={music.id}
+          musicName={music.name}
+          musicCover={getResizedImage({ url: music.cover, size: 80 })}
+          singers={music.singers}
         />
         <MenuItem
+          style={itemStyle}
           icon={<MdImage />}
-          label="编辑封面"
+          label={t('edit_cover')}
           onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              title: '编辑封面',
-              type: EditDialogType.COVER,
-              onSubmit: async (cover: Blob | undefined) => {
-                if (typeof cover === 'undefined') {
-                  throw new Error('请选择封面');
+            dialog.imageCut({
+              title: t('edit_cover'),
+              onConfirm: async (cover) => {
+                if (!cover) {
+                  notice.error(t('please_select_a_cover'));
+                  return false;
                 }
-                const { id: assetId } = await uploadAsset(
-                  cover,
-                  AssetType.MUSIC_COVER,
-                );
-                await updateMusic({
-                  id: music.id,
-                  key: AllowUpdateKey.COVER,
-                  value: assetId,
-                });
-                emitMusicUpdated(music.id);
+                try {
+                  const { id: assetId } = await uploadAsset(
+                    cover,
+                    AssetType.MUSIC_COVER,
+                  );
+                  await updateMusic({
+                    id: music.id,
+                    key: AllowUpdateKey.COVER,
+                    value: assetId,
+                  });
+                  emitMusicUpdated(music.id);
+                } catch (error) {
+                  logger.error(error, 'Failed to update cover of music');
+                  notice.error(error.message);
+                  return false;
+                }
               },
             })
           }
         />
         {music.cover.length ? (
           <MenuItem
+            style={itemStyle}
             icon={<MdImage />}
-            label="重置封面"
+            label={t('reset_cover')}
             onClick={() =>
               dialog.confirm({
-                title: '确定重置封面吗?',
-                content: '重置后音乐将使用默认封面',
+                title: t('reset_cover_question'),
                 onConfirm: async () => {
                   try {
                     await updateMusic({
@@ -192,7 +205,7 @@ function EditMenu({ music }: { music: MusicDetail }) {
                     });
                     emitMusicUpdated(music.id);
                   } catch (error) {
-                    logger.error(error, '重置音乐封面失败');
+                    logger.error(error, 'Failed to reset cover of music');
                     dialog.alert({
                       content: error.message,
                     });
@@ -204,57 +217,69 @@ function EditMenu({ music }: { music: MusicDetail }) {
           />
         ) : null}
         <MenuItem
+          style={itemStyle}
           icon={<MdTitle />}
-          label="编辑名字"
+          label={t('edit_name')}
           onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              title: '编辑名字',
-              type: EditDialogType.INPUT,
-              label: '名字',
+            dialog.input({
+              title: t('edit_name'),
+              label: t('name'),
               initialValue: music.name,
               maxLength: NAME_MAX_LENGTH,
-              onSubmit: async (name: string) => {
+              onConfirm: async (name: string) => {
                 const trimmedName = name.replace(/\s+/g, ' ').trim();
-
                 if (!trimmedName.length) {
-                  throw new Error('请输入名字');
+                  notice.error(t('please_enter_the_name'));
+                  return false;
                 }
 
                 if (trimmedName !== music.name) {
-                  await updateMusic({
-                    id: music.id,
-                    key: AllowUpdateKey.NAME,
-                    value: trimmedName,
-                  });
-                  emitMusicUpdated(music.id);
+                  try {
+                    await updateMusic({
+                      id: music.id,
+                      key: AllowUpdateKey.NAME,
+                      value: trimmedName,
+                    });
+                    emitMusicUpdated(music.id);
+                  } catch (error) {
+                    logger.error(error, 'Failed to update name of music');
+                    notice.error(error.message);
+                    return false;
+                  }
                 }
               },
             })
           }
         />
         <MenuItem
+          style={itemStyle}
           icon={<MdTextFields />}
-          label="编辑别名"
+          label={t('edit_alias')}
           onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              title: '编辑别名',
-              type: EditDialogType.INPUT_LIST,
-              label: '别名',
+            dialog.inputList({
+              title: t('edit_alias'),
+              label: t('alias'),
               initialValue: music.aliases,
               max: MUSIC_MAX_ALIAS_COUNT,
               maxLength: ALIAS_MAX_LENGTH,
-              onSubmit: async (aliases: string[]) => {
+              onConfirm: async (aliases: string[]) => {
                 const trimmedAliases = aliases
                   .map((a) => a.replace(/\s+/g, ' ').trim())
                   .filter((a) => a.length > 0);
 
                 if (!stringArrayEqual(trimmedAliases, music.aliases)) {
-                  await updateMusic({
-                    id: music.id,
-                    key: AllowUpdateKey.ALIASES,
-                    value: trimmedAliases,
-                  });
-                  emitMusicUpdated(music.id);
+                  try {
+                    await updateMusic({
+                      id: music.id,
+                      key: AllowUpdateKey.ALIASES,
+                      value: trimmedAliases,
+                    });
+                    emitMusicUpdated(music.id);
+                  } catch (error) {
+                    logger.error(error, 'Failed to update aliases of music');
+                    notice.error(error.message);
+                    return false;
+                  }
                 }
               },
             })
@@ -262,18 +287,18 @@ function EditMenu({ music }: { music: MusicDetail }) {
         />
         {music.type === MusicType.SONG ? (
           <MenuItem
+            style={itemStyle}
             icon={<MdTextFields />}
-            label="编辑歌词"
+            label={t('edit_lyric')}
             onClick={() =>
-              playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-                type: EditDialogType.TEXTAREA_LIST,
-                title: '编辑歌词',
-                label: '歌词',
+              dialog.textareaList({
+                title: t('edit_lyric'),
+                label: t('lyric'),
                 initialValue: music.lyrics.map((l) => l.lrc),
                 max: MUSIC_MAX_LRYIC_AMOUNT,
                 maxLength: LYRIC_MAX_LENGTH,
-                placeholder: 'LRC 格式的文本',
-                onSubmit: async (lyrics: string[]) => {
+                placeholder: t('text_of_lrc'),
+                onConfirm: async (lyrics: string[]) => {
                   const trimmedLyrics = lyrics
                     .map((l) => l.trim())
                     .filter((l) => l.length > 0);
@@ -284,12 +309,18 @@ function EditMenu({ music }: { music: MusicDetail }) {
                       music.lyrics.map((l) => l.lrc),
                     )
                   ) {
-                    await updateMusic({
-                      id: music.id,
-                      key: AllowUpdateKey.LYRIC,
-                      value: trimmedLyrics,
-                    });
-                    emitMusicUpdated(music.id);
+                    try {
+                      await updateMusic({
+                        id: music.id,
+                        key: AllowUpdateKey.LYRIC,
+                        value: trimmedLyrics,
+                      });
+                      emitMusicUpdated(music.id);
+                    } catch (error) {
+                      logger.error(error, 'Failed to update lyrics of music');
+                      notice.error(error.message);
+                      return false;
+                    }
                   }
                 },
               })
@@ -297,20 +328,22 @@ function EditMenu({ music }: { music: MusicDetail }) {
           />
         ) : null}
         <MenuItem
+          style={itemStyle}
           icon={<MdGroup />}
-          label="编辑歌手列表"
+          label={t('modify_singer')}
           onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              type: EditDialogType.MULTIPLE_SELECT,
-              label: '歌手列表',
-              title: '编辑歌手列表',
-              dataGetter: searchSinger,
+            dialog.multipleSelect<Singer>({
+              label: t('singer'),
+              labelAddon: <MissingSinger />,
+              title: t('modify_singer'),
+              optionsGetter: searchSinger,
               initialValue: music.singers.map(
                 formatSingerToMultipleSelectOption,
               ),
-              onSubmit: async (options: Option<Singer>[]) => {
+              onConfirm: async (options) => {
                 if (!options.length) {
-                  throw new Error('请选择歌手');
+                  notice.error(t('please_select_singers'));
+                  return false;
                 }
 
                 if (
@@ -319,157 +352,169 @@ function EditMenu({ music }: { music: MusicDetail }) {
                     options.map((o) => o.value.id).sort(),
                   )
                 ) {
-                  await updateMusic({
-                    id: music.id,
-                    key: AllowUpdateKey.SINGER,
-                    value: options.map((o) => o.value.id),
-                  });
-                  emitMusicUpdated(music.id);
-                }
-              },
-            })
-          }
-        />
-        <MenuItem
-          icon={<MdOutlineFilePresent />}
-          label="编辑标准音质文件"
-          onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              type: EditDialogType.FILE,
-              label: '标准音质文件',
-              title: '编辑标准音质文件',
-              acceptTypes: ASSET_TYPE_MAP[AssetType.MUSIC_SQ].acceptTypes,
-              placeholder: `选择文件, 支持以下类型 ${ASSET_TYPE_MAP[
-                AssetType.MUSIC_SQ
-              ].acceptTypes.join(',')}`,
-              onSubmit: async (file: File | null) => {
-                if (!file) {
-                  throw new Error('请选择文件');
-                }
-                const { id } = await uploadAsset(file, AssetType.MUSIC_SQ);
-                await updateMusic({
-                  id: music.id,
-                  key: AllowUpdateKey.SQ,
-                  value: id,
-                });
-                emitMusicUpdated(music.id);
-              },
-            })
-          }
-        />
-        <MenuItem
-          icon={<MdOutlineFilePresent />}
-          label="编辑无损音质文件"
-          onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              type: EditDialogType.FILE,
-              label: '无损音质文件',
-              title: '编辑无损音质文件',
-              acceptTypes: ASSET_TYPE_MAP[AssetType.MUSIC_HQ].acceptTypes,
-              placeholder: `选择文件, 支持以下类型 ${ASSET_TYPE_MAP[
-                AssetType.MUSIC_HQ
-              ].acceptTypes.join(',')}`,
-              onSubmit: async (file: File | null) => {
-                if (!file) {
-                  throw new Error('请选择文件');
-                }
-                const { id } = await uploadAsset(file, AssetType.MUSIC_HQ);
-                await updateMusic({
-                  id: music.id,
-                  key: AllowUpdateKey.HQ,
-                  value: id,
-                });
-                emitMusicUpdated(music.id);
-              },
-            })
-          }
-        />
-        {music.type === MusicType.SONG ? (
-          <MenuItem
-            icon={<MdOutlineFilePresent />}
-            label="编辑伴奏文件"
-            onClick={() =>
-              playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-                type: EditDialogType.FILE,
-                label: '伴奏文件',
-                title: '编辑伴奏文件',
-                acceptTypes: ASSET_TYPE_MAP[AssetType.MUSIC_AC].acceptTypes,
-                placeholder: `选择文件, 支持以下类型 ${ASSET_TYPE_MAP[
-                  AssetType.MUSIC_AC
-                ].acceptTypes.join(',')}`,
-                onSubmit: async (file: File | null) => {
-                  if (!file) {
-                    throw new Error('请选择文件');
+                  try {
+                    await updateMusic({
+                      id: music.id,
+                      key: AllowUpdateKey.SINGER,
+                      value: options.map((o) => o.value.id),
+                    });
+                    emitMusicUpdated(music.id);
+                  } catch (error) {
+                    logger.error(error, 'Failed to modify singers of music');
+                    notice.error(error.message);
+                    return false;
                   }
-                  const { id } = await uploadAsset(file, AssetType.MUSIC_AC);
+                }
+              },
+            })
+          }
+        />
+        <MenuItem
+          style={itemStyle}
+          icon={<MdOutlineFilePresent />}
+          label={t('modify_file_of_music')}
+          onClick={() =>
+            dialog.fileSelect({
+              title: t('modify_file_of_music'),
+              label: t('file_of_music'),
+              acceptTypes: ASSET_TYPE_MAP[AssetType.MUSIC].acceptTypes,
+              placeholder: t(
+                'one_of_formats',
+                ASSET_TYPE_MAP[AssetType.MUSIC].acceptTypes.join(','),
+              ),
+              onConfirm: async (file) => {
+                if (!file) {
+                  notice.error(t('please_select_a_file'));
+                  return false;
+                }
+                try {
+                  const { id } = await uploadAsset(file, AssetType.MUSIC);
                   await updateMusic({
                     id: music.id,
-                    key: AllowUpdateKey.AC,
+                    key: AllowUpdateKey.ASSET,
                     value: id,
                   });
                   emitMusicUpdated(music.id);
-                },
-              })
-            }
-          />
-        ) : null}
+                } catch (error) {
+                  logger.error(error, 'Failed to modify file of music');
+                  notice.error(error.message);
+                  return false;
+                }
+              },
+            })
+          }
+        />
         <MenuItem
+          style={itemStyle}
           icon={<MdCallSplit />}
-          label="编辑二次创作来源"
+          label={t('modify_fork_from')}
           onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              type: EditDialogType.MULTIPLE_SELECT,
-              title: '二次创作来源',
-              label: '创作来源自以下音乐',
-              dataGetter: searchMusic,
+            dialog.multipleSelect<Music>({
+              title: t('modify_fork_from'),
+              label: t('fork_from'),
+              optionsGetter: searchMusic,
               initialValue: music.forkFromList.map(
                 formatMusicTouMultipleSelectOtion,
               ),
-              onSubmit: async (options: Option<Music>[]) => {
+              onConfirm: async (options) => {
                 if (
                   !stringArrayEqual(
                     music.forkFromList.map((m) => m.id).sort(),
                     options.map((o) => o.value.id).sort(),
                   )
                 ) {
-                  await updateMusic({
-                    id: music.id,
-                    key: AllowUpdateKey.FORK_FROM,
-                    value: options.map((o) => o.value.id),
-                  });
-                  emitMusicUpdated(music.id);
+                  try {
+                    await updateMusic({
+                      id: music.id,
+                      key: AllowUpdateKey.FORK_FROM,
+                      value: options.map((o) => o.value.id),
+                    });
+                    emitMusicUpdated(music.id);
+                  } catch (error) {
+                    logger.error(error, "Failed to update music's fork-from");
+                    notice.error(error.message);
+                    return false;
+                  }
                 }
               },
             })
           }
         />
         <MenuItem
+          style={itemStyle}
+          icon={<MdOutlineCalendarToday />}
+          label={t('edit_year_of_issue')}
+          onClick={() =>
+            dialog.input({
+              title: t('edit_year_of_issue'),
+              label: t('year_of_issue'),
+              initialValue: music.year ? music.year.toString() : '',
+              inputType: 'number',
+              onConfirm: async (year: string) => {
+                const yearNumber = Number(year);
+                if (
+                  !yearNumber ||
+                  !Number.isInteger(yearNumber) ||
+                  yearNumber < YEAR_MIN ||
+                  yearNumber > YEAR_MAX
+                ) {
+                  notice.error(
+                    t(
+                      'year_of_issue_limit',
+                      YEAR_MIN.toString(),
+                      YEAR_MAX.toString(),
+                    ),
+                  );
+                  return false;
+                }
+
+                if (yearNumber !== music.year) {
+                  try {
+                    await updateMusic({
+                      id: music.id,
+                      key: AllowUpdateKey.YEAR,
+                      value: yearNumber,
+                    });
+                    emitMusicUpdated(music.id);
+                  } catch (error) {
+                    logger.error(
+                      error,
+                      "Failed to update music's year of issue",
+                    );
+                    notice.error(error.message);
+                    return false;
+                  }
+                }
+              },
+            })
+          }
+        />
+        <MenuItem
+          style={itemStyle}
           icon={<MdDelete style={dangerousIconStyle} />}
-          label="删除"
+          label={t('delete')}
           onClick={() => {
             if (music.forkList.length) {
-              return notice.error('被二次创作音乐无法被删除');
+              return notice.error(
+                t('music_forked_by_other_can_not_be_deleted'),
+              );
             }
-            return dialog.confirm({
-              title: '确定删除音乐吗?',
-              content: '注意, 音乐删除后无法恢复',
-              onConfirm: () =>
-                void dialog.confirm({
-                  title: '确定删除音乐吗?',
-                  content: '这是第二次确认, 也是最后一次',
-                  onConfirm: async () => {
-                    try {
-                      await deleteMusic(music.id);
-                      notice.info('已删除');
-                      playerEventemitter.emit(PlayerEventType.MUSIC_DELETED, {
-                        id: music.id,
-                      });
-                    } catch (error) {
-                      logger.error(error, '删除音乐失败');
-                      notice.error(error.message);
-                    }
-                  },
-                }),
+            return dialog.captcha({
+              confirmText: t('delete_music'),
+              confirmVariant: Variant.DANGER,
+              onConfirm: async ({ captchaId, captchaValue }) => {
+                try {
+                  await deleteMusic({ id: music.id, captchaId, captchaValue });
+                  playerEventemitter.emit(PlayerEventType.MUSIC_DELETED, {
+                    id: music.id,
+                  });
+                } catch (error) {
+                  logger.error(error, 'Failed to delete music');
+                  notice.error(error.message);
+
+                  return false;
+                }
+              },
             });
           }}
         />

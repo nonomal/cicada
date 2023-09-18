@@ -14,6 +14,8 @@ import { flexCenter } from '@/style/flexbox';
 import Empty from '@/components/empty';
 import absoluteFullSize from '@/style/absolute_full_size';
 import { CSSVariable } from '@/global_style';
+import autoScrollbar from '@/style/auto_scrollbar';
+import { t } from '@/i18n';
 import Context from '../context';
 import TabContent from './tab_content';
 import MusicBase from '../components/music_base';
@@ -35,6 +37,7 @@ const Style = styled(TabContent)`
 
     &.list {
       overflow: auto;
+      ${autoScrollbar}
     }
 
     &.empty {
@@ -70,6 +73,7 @@ function Playqueue({ style }: { style: unknown }) {
               return (
                 <MusicBase
                   key={key}
+                  index={queueMusic.index}
                   music={queueMusic}
                   active={actualIndex === currentPlayqueuePosition}
                   lineAfter={
@@ -77,12 +81,12 @@ function Playqueue({ style }: { style: unknown }) {
                       {queueMusic.shuffle ? (
                         <MdShuffle
                           style={shuffleStyle}
-                          title="随机选取自播放列表"
+                          title={t('pick_from_playlist_randomly')}
                         />
                       ) : null}
                       {actualIndex === currentPlayqueuePosition ? null : (
                         <IconButton
-                          title="定位到该位置"
+                          title={t('relocate_to_here')}
                           size={ComponentSize.SMALL}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -156,7 +160,7 @@ function Playqueue({ style }: { style: unknown }) {
         </div>
       ) : (
         <div className="content empty">
-          <Empty description="空的播放队列" />
+          <Empty description={t('empty_playqueue')} />
         </div>
       )}
     </Style>

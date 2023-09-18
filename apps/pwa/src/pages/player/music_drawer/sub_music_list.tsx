@@ -1,5 +1,6 @@
 import { CSSVariable } from '@/global_style';
 import styled from 'styled-components';
+import getResizedImage from '@/server/asset/get_resized_image';
 import { Music } from '../constants';
 import MusicInfo from '../components/music_info';
 
@@ -10,10 +11,17 @@ const Style = styled.div`
   background-color: ${CSSVariable.BACKGROUND_COLOR_LEVEL_ONE};
 
   > .label {
-    margin: 0 20px 5px 20px;
+    margin: 0 20px;
+    padding: 10px 0;
 
     font-size: 12px;
     color: ${CSSVariable.TEXT_COLOR_SECONDARY};
+  }
+
+  > .list {
+    > .item {
+      margin: 0 10px;
+    }
   }
 `;
 
@@ -21,15 +29,22 @@ function SubMusicList({
   musicList,
   label,
 }: {
-  musicList: Music[];
+  musicList: Omit<Music, 'asset' | 'type' | 'aliases'>[];
   label: string;
 }) {
   return (
     <Style>
       <div className="label">{label}</div>
-      <div>
+      <div className="list">
         {musicList.map((music) => (
-          <MusicInfo key={music.id} music={music} className="item" />
+          <MusicInfo
+            key={music.id}
+            className="item"
+            musicId={music.id}
+            musicName={music.name}
+            musicCover={getResizedImage({ url: music.cover, size: 80 })}
+            singers={music.singers}
+          />
         ))}
       </div>
     </Style>

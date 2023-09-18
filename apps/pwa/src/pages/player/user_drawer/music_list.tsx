@@ -2,25 +2,26 @@ import Empty from '@/components/empty';
 import { CSSProperties, useContext } from 'react';
 import styled from 'styled-components';
 import Music from '../components/music';
-import { MusicWithIndex } from '../constants';
+import { MusicWithSingerAliases } from '../constants';
 import Context from '../context';
 
 const Root = styled.div`
-  min-height: 100vh;
+  min-height: 100dvb;
 `;
 const style: CSSProperties = {
   padding: '50px 0',
 };
 
-function MusicList({ musicList }: { musicList: MusicWithIndex[] }) {
+function MusicList({ musicList }: { musicList: MusicWithSingerAliases[] }) {
   const { playqueue, currentPlayqueuePosition } = useContext(Context);
 
   if (musicList.length) {
     return (
       <Root>
-        {musicList.map((music) => (
+        {musicList.map((music, index) => (
           <Music
             key={music.id}
+            index={musicList.length - index}
             music={music}
             active={playqueue[currentPlayqueuePosition]?.id === music.id}
           />

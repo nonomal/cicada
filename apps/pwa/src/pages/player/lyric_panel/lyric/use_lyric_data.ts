@@ -1,6 +1,6 @@
 import { MusicType } from '#/constants/music';
-import logger from '#/utils/logger';
-import getLyricList from '@/server/get_lyric_list';
+import logger from '@/utils/logger';
+import getLyricList from '@/server/api/get_lyric_list';
 import { useCallback, useEffect, useState } from 'react';
 import { QueueMusic } from '../../constants';
 import { LyricData, Status } from './constants';
@@ -8,8 +8,8 @@ import { LyricData, Status } from './constants';
 export default (queueMusic: QueueMusic) => {
   const [data, setData] = useState<LyricData>({ status: Status.LOADING });
   const getData = useCallback(async () => {
-    if (queueMusic.type === MusicType.INSTRUMENT) {
-      return setData({ status: Status.INSTRUMENT });
+    if (queueMusic.type === MusicType.INSTRUMENTAL) {
+      return setData({ status: Status.INSTRUMENTAL });
     }
     setData({ status: Status.LOADING });
     try {

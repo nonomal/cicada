@@ -10,7 +10,7 @@ import {
   MdReadMore,
   MdOutlinePostAdd,
 } from 'react-icons/md';
-import mm from '@/global_states/mini_mode';
+import theme from '@/global_states/theme';
 import { CSSVariable } from '@/global_style';
 import playerEventemitter, {
   EventType as PlayerEventType,
@@ -54,7 +54,7 @@ function Operation({
   paused: boolean;
   loading: boolean;
 }) {
-  const miniMode = mm.useState();
+  const { miniMode } = theme.useState();
   return (
     <Style>
       {miniMode ? null : (
@@ -72,7 +72,7 @@ function Operation({
           <IconButton
             onClick={() =>
               playerEventemitter.emit(
-                PlayerEventType.OPEN_ADD_MUSIC_TO_MUSICBILL_DRAWER,
+                PlayerEventType.OPEN_MUSICBILL_MUSIC_DRAWER,
                 { music: queueMusic },
               )
             }

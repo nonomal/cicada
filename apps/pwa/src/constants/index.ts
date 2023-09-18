@@ -6,8 +6,6 @@ export enum RequestStatus {
 }
 
 export enum Query {
-  VERSION = '__v',
-
   REDIRECT = 'redirect',
   CREATE_MUSIC_DIALOG_OPEN = 'create_music_dialog_open',
   PAGE = 'page',
@@ -17,8 +15,6 @@ export enum Query {
   SINGER_DRAWER_ID = 'singer_drawer_id',
 }
 
-export enum PlayMode {
-  SQ = 'sq',
-  HQ = 'hq',
-  AC = 'ac',
-}
+export const MINI_MODE_MAX_WIDTH = 720;
+
+export const NORMAL_REQUEST_MINIMAL_DURATION = 500;

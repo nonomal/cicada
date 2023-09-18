@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-npm i
+npm ci
 
 mkdir -p cache
 
@@ -29,7 +29,7 @@ for target in ${targets[@]}; do
 done
 
 npm run build:pwa
-npm run build:server
+npm run build:cli
 
 # backup package.json
 cp package.json package.json.bak
@@ -37,9 +37,9 @@ cp package.json package.json.bak
 # write pkg targets to package.json
 pkg="$(cat package.json)"
 if [[ $1 == "docker" ]]; then
-  node -e "const pkg = JSON.parse(\`$pkg\`); pkg.pkg.targets = [\"node16-linux-x64\"]; console.log(JSON.stringify(pkg))" >package.json
+  node -e "const pkg = JSON.parse(\`$pkg\`); pkg.pkg.targets = [\"node18-linux-x64\"]; console.log(JSON.stringify(pkg))" >package.json
 else
-  node -e "const pkg = JSON.parse(\`$pkg\`); pkg.pkg.targets = [\"node16-macos-x64\",\"node16-win-x64\",\"node16-linux-x64\"]; console.log(JSON.stringify(pkg))" >package.json
+  node -e "const pkg = JSON.parse(\`$pkg\`); pkg.pkg.targets = [\"node18-macos-x64\",\"node18-win-x64\",\"node18-linux-x64\"]; console.log(JSON.stringify(pkg))" >package.json
 fi
 
 if [ -d "build" ]; then

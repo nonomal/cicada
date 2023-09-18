@@ -2,9 +2,9 @@ import { CSSVariable } from '@/global_style';
 import styled, { css } from 'styled-components';
 import { HtmlHTMLAttributes, ReactNode } from 'react';
 import ellipsis from '@/style/ellipsis';
-import { MusicWithIndex } from '../constants';
 import e, { EventType } from '../eventemitter';
 import Singer from './singer';
+import { Singer as SingerType } from '../constants';
 
 const Style = styled.div<{ active: boolean }>`
   cursor: pointer;
@@ -91,13 +91,20 @@ const Style = styled.div<{ active: boolean }>`
 
 function MusicBase({
   active,
+  index,
   music,
   lineAfter,
   addon,
   ...props
 }: HtmlHTMLAttributes<HTMLDivElement> & {
   active: boolean;
-  music: MusicWithIndex;
+  index: number;
+  music: {
+    id: string;
+    name: string;
+    singers: SingerType[];
+    aliases: string[];
+  };
   lineAfter: ReactNode;
   addon?: ReactNode;
 }) {
@@ -113,7 +120,7 @@ function MusicBase({
         return openMusicDrawer();
       }}
     >
-      <div className="index">{music.index}</div>
+      <div className="index">{index}</div>
       <div className="content">
         <div className="music">
           <div className="info">

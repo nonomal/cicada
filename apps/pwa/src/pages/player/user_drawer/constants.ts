@@ -1,13 +1,10 @@
-import getUserDetail from '@/server/get_user_detail';
-import { MusicWithIndex } from '../constants';
+import getUser from '@/server/api/get_user';
 
-export type UserDetail = AsyncReturnType<typeof getUserDetail> & {
-  musicList: MusicWithIndex[];
-};
+export type UserDetail = AsyncReturnType<typeof getUser>;
 
 export enum Tab {
-  MUSICBILL = 'musicbill',
   MUSIC = 'music',
+  MUSICBILL = 'musicbill',
 }
 
 export const TAB_MAP_LABEL: Record<Tab, string> = {

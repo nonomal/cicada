@@ -1,24 +1,23 @@
 import styled from 'styled-components';
 import Drawer from '@/components/drawer';
-import { CSSProperties, UIEventHandler, useState } from 'react';
+import { CSSProperties } from 'react';
 import { animated, useTransition } from 'react-spring';
 import absoluteFullSize from '@/style/absolute_full_size';
 import { flexCenter } from '@/style/flexbox';
 import ErrorCard from '@/components/error_card';
 import Spinner from '@/components/spinner';
+import autoScrollbar from '@/style/auto_scrollbar';
 import useData from './use_data';
-import { MINI_INFO_HEIGHT, SingerDetail } from './constants';
+import { Singer } from './constants';
 import Info from './info';
 import Toolbar from './toolbar';
 import MusicList from './music_list';
 import CreateUser from './create_user';
-import MiniIfno from './mini_info';
 import EditMenu from './edit_menu';
 
 const bodyProps: { style: CSSProperties } = {
   style: {
-    width: '85%',
-    maxWidth: 400,
+    width: 'min(85%, 400px)',
   },
 };
 const Container = styled(animated.div)`
@@ -32,33 +31,35 @@ const DetailContainer = styled(Container)`
     ${absoluteFullSize}
 
     overflow: auto;
+    ${autoScrollbar}
 
     > .first-screen {
-      min-height: 100vh;
+      min-height: 100dvb;
     }
   }
 `;
 
-function Detail({ style, singer }: { style: unknown; singer: SingerDetail }) {
-  const [toolbarSticky, setToolbarSticky] = useState(false);
-
-  const onScroll: UIEventHandler<HTMLDivElement> = (event) => {
-    const { scrollTop, clientWidth } = event.target as HTMLDivElement;
-    setToolbarSticky(scrollTop >= clientWidth - MINI_INFO_HEIGHT);
-  };
+function Detail({ style, singer }: { style: unknown; singer: Singer }) {
   return (
     // @ts-expect-error
     <DetailContainer style={style}>
-      <div className="scrollable" onScroll={onScroll}>
+      <div className="scrollable">
         <div className="first-screen">
           <Info singer={singer} />
-          <Toolbar singer={singer} />
-          <MusicList musicList={singer.musicList} />
+          <MusicList
+            musicList={singer.musicList.map((m, index) => ({
+              ...m,
+              index: singer.musicList.length - index,
+            }))}
+          />
         </div>
-        <CreateUser user={singer.createUser} createTime={singer.createTime} />
+        <CreateUser
+          user={singer.createUser}
+          createTimestamp={singer.createTimestamp}
+        />
+        <Toolbar singer={singer} />
       </div>
 
-      {toolbarSticky ? <MiniIfno singer={singer} /> : null}
       <EditMenu singer={singer} />
     </DetailContainer>
   );
@@ -104,7 +105,7 @@ function SingerDrawer({
             </CardContainer>
           );
         }
-        return <Detail style={style} singer={d.singer!} />;
+        return <Detail style={style} singer={d.value} />;
       })}
     </Drawer>
   );

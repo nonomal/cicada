@@ -3,6 +3,7 @@ import * as React from 'react';
 import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 import { useTransition, animated } from 'react-spring';
+import autoScrollbar from '@/style/auto_scrollbar';
 
 const Mask = styled(animated.div)`
   position: fixed;
@@ -19,10 +20,11 @@ const Mask = styled(animated.div)`
 `;
 const Body = styled(animated.div)`
   width: 100%;
-  max-width: 500px;
+  max-width: min(300px, 100%);
   max-height: 75%;
 
   overflow: auto;
+  ${autoScrollbar}
 
   box-shadow: 0px 8px 10px -5px rgba(0, 0, 0, 0.2),
     0px 16px 24px 2px rgba(0, 0, 0, 0.14), 0px 6px 30px 5px rgba(0, 0, 0, 0.12);

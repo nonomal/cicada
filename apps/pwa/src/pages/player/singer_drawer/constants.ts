@@ -1,15 +1,4 @@
-import { MusicWithIndex, Singer } from '../constants';
+import getSinger from '@/server/api/get_singer';
 
-export interface CreateUser {
-  id: string;
-  nickname: string;
-}
-
-export interface SingerDetail extends Singer {
-  avatar: string;
-  musicList: MusicWithIndex[];
-  createUser: CreateUser;
-  createTime: string;
-}
-
-export const MINI_INFO_HEIGHT = 50;
+export type Singer = AsyncReturnType<typeof getSinger>;
+export type CreateUser = Singer['createUser'];

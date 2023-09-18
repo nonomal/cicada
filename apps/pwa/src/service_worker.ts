@@ -7,10 +7,9 @@ import { CacheFirst, NetworkFirst } from 'workbox-strategies';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { RangeRequestsPlugin } from 'workbox-range-requests';
 import { CacheName } from '@/constants/cache';
-import { AssetType, PathPrefix } from '#/constants';
+import { AssetType, CommonQuery, PathPrefix } from '#/constants';
 import parseSearch from './utils/parse_search';
 import definition from './definition';
-import { Query } from './constants';
 
 export type {};
 declare const self: ServiceWorkerGlobalScope & {
@@ -49,10 +48,10 @@ self.addEventListener('activate', () => {
     const keys = await cache.keys();
     for (const key of keys) {
       const url = new URL(key.url);
-      const query = parseSearch<Query.VERSION>(url.search);
+      const query = parseSearch<CommonQuery.VERSION>(url.search);
       if (
-        !query[Query.VERSION] ||
-        query[Query.VERSION] !== definition.VERSION
+        !query[CommonQuery.VERSION] ||
+        query[CommonQuery.VERSION] !== definition.VERSION
       ) {
         cache.delete(key);
       }
@@ -66,11 +65,7 @@ self.addEventListener('activate', () => {
  * 详情查看 https://developer.chrome.com/docs/workbox/serving-cached-audio-and-video
  * @author mebtte<hi@mebtte.com>
  */
-const MEDIA_ASSET_TYPES = [
-  AssetType.MUSIC_SQ,
-  AssetType.MUSIC_AC,
-  AssetType.MUSIC_HQ,
-];
+const MEDIA_ASSET_TYPES = [AssetType.MUSIC];
 function isMediaAsset(url: URL) {
   for (const mediaAssetType of MEDIA_ASSET_TYPES) {
     if (url.pathname.includes(`/${mediaAssetType}/`)) {

@@ -1,11 +1,16 @@
 import Popup from '@/components/popup';
 import { CSSProperties, MouseEventHandler, useEffect, useState } from 'react';
 import MenuItem from '@/components/menu_item';
-import { MdImage, MdTitle, MdTextFields } from 'react-icons/md';
+import {
+  MdImage,
+  MdTitle,
+  MdTextFields,
+  MdOutlineHistory,
+} from 'react-icons/md';
 import styled from 'styled-components';
-import uploadAsset from '@/server/upload_asset';
+import uploadAsset from '@/server/form/upload_asset';
 import { AssetType } from '#/constants';
-import updateSinger from '@/server/update_singer';
+import updateSinger from '@/server/api/update_singer';
 import {
   ALIAS_MAX_LENGTH,
   AllowUpdateKey,
@@ -13,15 +18,15 @@ import {
 } from '#/constants/singer';
 import stringArrayEqual from '#/utils/string_array_equal';
 import dialog from '@/utils/dialog';
-import logger from '#/utils/logger';
+import logger from '@/utils/logger';
+import notice from '@/utils/notice';
+import { t } from '@/i18n';
 import { ZIndex } from '../constants';
 import e, { EventType } from './eventemitter';
+import { Singer } from './constants';
 import playerEventemitter, {
-  EditDialogType,
   EventType as PlayerEventType,
 } from '../eventemitter';
-import { SingerDetail } from './constants';
-import { emitSingerUpdated } from '../utils';
 
 const maskProps: {
   style: CSSProperties;
@@ -36,8 +41,9 @@ const bodyProps: { style: CSSProperties } = {
 const Style = styled.div`
   padding: 10px 0 max(env(safe-area-inset-bottom, 10px), 10px) 0;
 `;
+const itemStyle: CSSProperties = { margin: '0 10px' };
 
-function EditMenu({ singer }: { singer: SingerDetail }) {
+function EditMenu({ singer }: { singer: Singer }) {
   const [open, setOpen] = useState(false);
   // const [open, setOpen] = useState(true);
   const onClose = () => setOpen(false);
@@ -58,38 +64,47 @@ function EditMenu({ singer }: { singer: SingerDetail }) {
     >
       <Style onClick={onClose}>
         <MenuItem
+          style={itemStyle}
           icon={<MdImage />}
-          label="编辑头像"
+          label={t('edit_avatar')}
           onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              type: EditDialogType.COVER,
-              title: '编辑头像',
-              onSubmit: async (blob: Blob | undefined) => {
+            dialog.imageCut({
+              title: t('edit_avatar'),
+              onConfirm: async (blob) => {
                 if (!blob) {
-                  throw new Error('请选择头像');
+                  notice.error(t('please_select_an_avatar'));
+                  return false;
                 }
-                const { id: assetId } = await uploadAsset(
-                  blob,
-                  AssetType.SINGER_AVATAR,
-                );
-                await updateSinger({
-                  id: singer.id,
-                  key: AllowUpdateKey.AVATAR,
-                  value: assetId,
-                });
-                emitSingerUpdated(singer.id);
+                try {
+                  const { id: assetId } = await uploadAsset(
+                    blob,
+                    AssetType.SINGER_AVATAR,
+                  );
+                  await updateSinger({
+                    id: singer.id,
+                    key: AllowUpdateKey.AVATAR,
+                    value: assetId,
+                  });
+                  playerEventemitter.emit(PlayerEventType.SINGER_UPDATED, {
+                    id: singer.id,
+                  });
+                } catch (error) {
+                  logger.error(error, "Failed to update singers'avatar");
+                  notice.error(error.message);
+                  return false;
+                }
               },
             })
           }
         />
         {singer.avatar.length ? (
           <MenuItem
+            style={itemStyle}
             icon={<MdImage />}
-            label="重置头像"
+            label={t('reset_avatar')}
             onClick={() =>
               dialog.confirm({
-                title: '确定重置头像吗?',
-                content: '重置后歌手将使用默认头像',
+                title: t('reset_avatar_question'),
                 onConfirm: async () => {
                   try {
                     await updateSinger({
@@ -97,9 +112,11 @@ function EditMenu({ singer }: { singer: SingerDetail }) {
                       key: AllowUpdateKey.AVATAR,
                       value: '',
                     });
-                    emitSingerUpdated(singer.id);
+                    playerEventemitter.emit(PlayerEventType.SINGER_UPDATED, {
+                      id: singer.id,
+                    });
                   } catch (error) {
-                    logger.error(error, '重置歌手头像失败');
+                    logger.error(error, "Failed to reset singer's avatar");
                     dialog.alert({
                       content: error.message,
                     });
@@ -111,57 +128,87 @@ function EditMenu({ singer }: { singer: SingerDetail }) {
           />
         ) : null}
         <MenuItem
+          style={itemStyle}
           icon={<MdTitle />}
-          label="编辑名字"
+          label={t('edit_name')}
           onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              type: EditDialogType.INPUT,
-              title: '编辑名字',
-              label: '名字',
+            dialog.input({
+              title: t('edit_name'),
+              label: t('name'),
               initialValue: singer.name,
               maxLength: NAME_MAX_LENGTH,
-              onSubmit: async (name: string) => {
+              onConfirm: async (name: string) => {
                 const trimmedName = name.replace(/\s+/g, ' ').trim();
                 if (!trimmedName) {
-                  throw new Error('请输入名字');
+                  notice.error(t('please_enter_the_name'));
+                  return false;
                 }
                 if (singer.name !== trimmedName) {
-                  await updateSinger({
-                    id: singer.id,
-                    key: AllowUpdateKey.NAME,
-                    value: trimmedName,
-                  });
-                  emitSingerUpdated(singer.id);
+                  try {
+                    await updateSinger({
+                      id: singer.id,
+                      key: AllowUpdateKey.NAME,
+                      value: trimmedName,
+                    });
+                    playerEventemitter.emit(PlayerEventType.SINGER_UPDATED, {
+                      id: singer.id,
+                    });
+                  } catch (error) {
+                    logger.error(error, "Failed to update singer's name");
+                    notice.error(error.message);
+                    return false;
+                  }
                 }
               },
             })
           }
         />
         <MenuItem
+          style={itemStyle}
           icon={<MdTextFields />}
-          label="编辑别名"
+          label={t('edit_alias')}
           onClick={() =>
-            playerEventemitter.emit(PlayerEventType.OPEN_EDIT_DIALOG, {
-              type: EditDialogType.INPUT_LIST,
-              title: '编辑别名',
-              label: '别名',
+            dialog.inputList({
+              title: t('edit_alias'),
+              label: t('alias'),
               initialValue: singer.aliases,
               maxLength: ALIAS_MAX_LENGTH,
-              onSubmit: async (aliases: string[]) => {
+              onConfirm: async (aliases: string[]) => {
                 const trimmedAliases = aliases
                   .map((a) => a.replace(/\s+/g, ' ').trim())
                   .filter((a) => a.length > 0);
 
                 if (!stringArrayEqual(trimmedAliases, singer.aliases)) {
-                  await updateSinger({
-                    id: singer.id,
-                    key: AllowUpdateKey.ALIASES,
-                    value: trimmedAliases,
-                  });
-                  emitSingerUpdated(singer.id);
+                  try {
+                    await updateSinger({
+                      id: singer.id,
+                      key: AllowUpdateKey.ALIASES,
+                      value: trimmedAliases,
+                    });
+                    playerEventemitter.emit(PlayerEventType.SINGER_UPDATED, {
+                      id: singer.id,
+                    });
+                  } catch (error) {
+                    logger.error(error, "Failed to update singer's alias");
+                    notice.error(error.message);
+                    return false;
+                  }
                 }
               },
             })
+          }
+        />
+        <MenuItem
+          style={itemStyle}
+          icon={<MdOutlineHistory />}
+          label={t('view_modify_record')}
+          onClick={() =>
+            playerEventemitter.emit(
+              PlayerEventType.OPEN_SINGER_MODIFY_RECORD_DRAWER,
+              {
+                singer,
+              },
+            )
           }
         />
       </Style>

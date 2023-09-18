@@ -9,6 +9,8 @@ import useNavigate from '@/utils/use_navigate';
 import { Query } from '@/constants';
 import { animated, useTransition } from 'react-spring';
 import absoluteFullSize from '@/style/absolute_full_size';
+import autoScrollbar from '@/style/auto_scrollbar';
+import { t } from '@/i18n';
 import { HEADER_HEIGHT } from '../../../constants';
 import useMusicPlayRecordList from './use_music_play_record_list';
 import { PAGE_SIZE, TOOLBAR_HEIGHT } from '../constants';
@@ -35,6 +37,7 @@ const MusicListContainer = styled(Container)`
   padding-bottom: ${TOOLBAR_HEIGHT}px;
 
   overflow: auto;
+  ${autoScrollbar}
 `;
 const paginationStyle: CSSProperties = {
   margin: '10px 0',
@@ -82,7 +85,7 @@ function MusicList() {
         if (!value!.total && !value!.musicPlayRecordList.length) {
           return (
             <CardContainer style={style}>
-              <Empty description="暂无相关音乐播放记录" />
+              <Empty description={t('no_suitable_music_play_record')} />
             </CardContainer>
           );
         }
@@ -90,8 +93,12 @@ function MusicList() {
         return (
           <MusicListContainer style={style}>
             <div className="list">
-              {value!.musicPlayRecordList.map((mpr) => (
-                <MusicPlayRecord key={mpr.recordId} musicPlayRecord={mpr} />
+              {value.musicPlayRecordList.map((mpr, index) => (
+                <MusicPlayRecord
+                  key={mpr.recordId}
+                  index={value.total - PAGE_SIZE * (page - 1) - index}
+                  musicPlayRecord={mpr}
+                />
               ))}
             </div>
             {value!.total ? (
