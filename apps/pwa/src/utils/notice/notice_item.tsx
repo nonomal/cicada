@@ -3,6 +3,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { MdClose } from 'react-icons/md';
 import { CSSVariable } from '@/global_style';
 import { UtilZIndex } from '@/constants/style';
+import upperCaseFirstLetter from '@/style/upper_case_first_letter';
 import { Notice, TRANSITION_DURATION, NoticeType } from './constants';
 import e, { EventType } from './eventemitter';
 import IconButton from '../../components/icon_button';
@@ -45,7 +46,7 @@ const Style = styled.div<{ type: NoticeType }>`
 
   position: fixed;
   right: 20px;
-  max-width: 300px;
+  max-width: min(300px, 75%);
 
   animation: ${slideIn} ${TRANSITION_DURATION}ms ease-in-out;
   transition: all ${TRANSITION_DURATION}ms;
@@ -65,6 +66,8 @@ const Style = styled.div<{ type: NoticeType }>`
       font-size: 12px;
       line-height: 1.5;
       color: #fff;
+
+      ${upperCaseFirstLetter}
     }
 
     > .close {

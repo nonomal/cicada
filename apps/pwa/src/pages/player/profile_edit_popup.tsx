@@ -14,8 +14,11 @@ import { AllowUpdateKey, NICKNAME_MAX_LENGTH } from '#/constants/user';
 import globalEventemitter, {
   EventType as GlobalEventType,
 } from '@/platform/global_eventemitter';
-import e, { EditDialogType, EventType } from './eventemitter';
+import dialog from '@/utils/dialog';
+import notice from '@/utils/notice';
+import logger from '@/utils/logger';
 import { ZIndex } from './constants';
+import e, { EventType } from './eventemitter';
 
 const maskProps: {
   style: CSSProperties;
@@ -24,18 +27,12 @@ const maskProps: {
     zIndex: ZIndex.POPUP,
   },
 };
-const bodyProps: {
-  style: CSSProperties;
-} = {
-  style: {
-    maxWidth: 350,
-  },
-};
 const Style = styled.div`
   padding: 10px 0 max(env(safe-area-inset-bottom, 10px), 10px) 0;
 
   > .profile {
-    padding: 10px 20px;
+    padding: 10px;
+    margin: 0 10px;
 
     display: flex;
     align-items: center;
@@ -70,6 +67,7 @@ const Style = styled.div`
     }
   }
 `;
+const itemStyle: CSSProperties = { margin: '0 10px' };
 
 function ProfileEditPopup() {
   const profile = p.useState()!;
@@ -87,12 +85,7 @@ function ProfileEditPopup() {
   const openUserDrawer = () =>
     e.emit(EventType.OPEN_USER_DRAWER, { id: profile.id });
   return (
-    <Popup
-      open={open}
-      onClose={onClose}
-      maskProps={maskProps}
-      bodyProps={bodyProps}
-    >
+    <Popup open={open} onClose={onClose} maskProps={maskProps}>
       <Style onClick={onClose}>
         <div className="profile" onClick={openUserDrawer}>
           <Cover src={profile.avatar} size={56} />
@@ -103,52 +96,73 @@ function ProfileEditPopup() {
           </div>
         </div>
         <MenuItem
+          style={itemStyle}
           label="查看个人主页"
           icon={<MdRemoveRedEye />}
           onClick={openUserDrawer}
         />
         <MenuItem
+          style={itemStyle}
           label="修改头像"
           icon={<MdImage />}
           onClick={() =>
-            e.emit(EventType.OPEN_EDIT_DIALOG, {
-              type: EditDialogType.COVER,
+            dialog.imageCut({
               title: '修改头像',
-              onSubmit: async (avatar: File | null) => {
+              onConfirm: async (avatar) => {
                 if (!avatar) {
-                  throw new Error('请选择头像');
+                  notice.error('请选择头像');
+                  return false;
                 }
-
-                const { id } = await uploadAsset(avatar, AssetType.USER_AVATAR);
-                await updateProfile({ key: AllowUpdateKey.AVATAR, value: id });
-
-                globalEventemitter.emit(GlobalEventType.RELOAD_PROFILE, null);
+                try {
+                  const { id } = await uploadAsset(
+                    avatar,
+                    AssetType.USER_AVATAR,
+                  );
+                  await updateProfile({
+                    key: AllowUpdateKey.AVATAR,
+                    value: id,
+                  });
+                  globalEventemitter.emit(GlobalEventType.RELOAD_PROFILE, null);
+                } catch (error) {
+                  logger.error(error, "Updating profile's avatar fail");
+                  notice.error(error.message);
+                  return false;
+                }
               },
             })
           }
         />
         <MenuItem
+          style={itemStyle}
           label="修改昵称"
           icon={<MdTitle />}
           onClick={() =>
-            e.emit(EventType.OPEN_EDIT_DIALOG, {
-              type: EditDialogType.INPUT,
+            dialog.input({
               title: '修改昵称',
               label: '昵称',
               initialValue: profile.nickname,
               maxLength: NICKNAME_MAX_LENGTH,
-              onSubmit: async (nickname: string) => {
+              onConfirm: async (nickname: string) => {
                 const trimmedNickname = nickname.replace(/\s+/g, ' ').trim();
                 if (!trimmedNickname) {
-                  throw new Error('请输入昵称');
+                  notice.error('请输入昵称');
+                  return false;
                 }
                 if (profile.nickname !== trimmedNickname) {
-                  await updateProfile({
-                    key: AllowUpdateKey.NICKNAME,
-                    value: trimmedNickname,
-                  });
-
-                  globalEventemitter.emit(GlobalEventType.RELOAD_PROFILE, null);
+                  try {
+                    await updateProfile({
+                      key: AllowUpdateKey.NICKNAME,
+                      value: trimmedNickname,
+                    });
+                    globalEventemitter.emit(
+                      GlobalEventType.RELOAD_PROFILE,
+                      null,
+                    );
+                  } catch (error) {
+                    logger.error(error, '更新昵称失败');
+                    notice.error(error.message);
+                    return false;
+                  }
                 }
               },
             })

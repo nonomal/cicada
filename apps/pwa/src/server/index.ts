@@ -1,11 +1,13 @@
 import { ExceptionCode } from '#/constants/exception';
 import token from '@/global_states/token';
-import { prefixServerOrigin } from '@/global_states/setting';
+import setting, { prefixServerOrigin } from '@/global_states/setting';
 import ErrorWithCode from '@/utils/error_with_code';
 import sleep from '#/utils/sleep';
 import definition from '@/definition';
-import { Query } from '@/constants';
+import { NORMAL_REQUEST_MINIMAL_DURATION } from '@/constants';
 import timeoutFn from '#/utils/timeout';
+import { CommonQuery } from '#/constants';
+import { t } from '@/i18n';
 
 export enum Method {
   GET = 'get',
@@ -22,7 +24,7 @@ export async function request<Data = void>({
   body,
   headers = {},
   withToken = false,
-  minDuration = 500,
+  requestMinimalDuration = NORMAL_REQUEST_MINIMAL_DURATION,
   timeout = 10 * 1000,
 }: {
   path: string;
@@ -35,14 +37,15 @@ export async function request<Data = void>({
     [key: string]: string;
   };
   withToken?: boolean;
-  minDuration?: number;
+  requestMinimalDuration?: number;
   timeout?: number;
 }) {
   let url = prefixServerOrigin(path);
 
   const combineParams = {
     ...params,
-    [Query.VERSION]: definition.VERSION,
+    [CommonQuery.VERSION]: definition.VERSION,
+    [CommonQuery.LANGUAGE]: setting.get().language,
   };
   url += `?${Object.keys(combineParams)
     .map(
@@ -78,12 +81,12 @@ export async function request<Data = void>({
           headers,
           body: processedBody,
         }),
-        sleep(minDuration),
+        sleep(requestMinimalDuration),
       ]),
       timeoutFn(timeout),
     ]);
   } catch (error) {
-    throw new Error('无法连接到服务器');
+    throw new Error(t('can_not_connect_to_server_temporarily'));
   }
 
   const { status, statusText } = response;
@@ -103,7 +106,7 @@ export async function request<Data = void>({
 
   if (code !== ExceptionCode.SUCCESS) {
     switch (code) {
-      case ExceptionCode.NOT_AUTHORIZE: {
+      case ExceptionCode.NOT_AUTHORIZED: {
         token.set('');
         break;
       }

@@ -1,21 +1,9 @@
+import { Response } from '#/server/api/admin_get_user_list';
 import { prefixServerOrigin } from '@/global_states/setting';
 import { request } from '..';
 
 async function adminGetUserList() {
-  const userList = await request<
-    {
-      id: string;
-      nickname: string;
-      avatar: string;
-      admin: 0 | 1;
-      email: string;
-      remark: string;
-      joinTimestamp: number;
-      musicbillMaxAmount: number;
-      createMusicMaxAmountPerDay: number;
-      exportMusicbillMaxTimePerDay: number;
-    }[]
-  >({
+  const userList = await request<Response>({
     path: '/api/admin/user_list',
     withToken: true,
   });

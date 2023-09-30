@@ -1,6 +1,5 @@
 import {
   UIEventHandler,
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -8,99 +7,105 @@ import {
   useState,
 } from 'react';
 import styled from 'styled-components';
-import { RequestStatus } from '@/constants';
+import { Query, RequestStatus } from '@/constants';
 import throttle from 'lodash/throttle';
-import SessionStorageKey from '@/constants/session_storage_key';
-import absoluteFullSize from '@/style/absolute_full_size';
+import useQuery from '@/utils/use_query';
+import autoScrollbar from '@/style/auto_scrollbar';
+import cache, { CacheKey } from './cache';
 import playerEventemitter, {
   EventType as PlayerEventType,
 } from '../../eventemitter';
-import { Musicbill as MusicbillType } from '../../constants';
+import { HEADER_HEIGHT, Musicbill as MusicbillType } from '../../constants';
 import Page from '../page';
 import Info from './info';
 import MusicList from './music_list';
 import { INFO_HEIGHT, MINI_INFO_HEIGHT } from './constants';
 import MiniInfo from './mini_info';
-import EditMenu from './edit_menu';
 import Filter from './filter';
 
+const RELOAD_INTERVAL = 1000 * 60 * 15;
 const Style = styled(Page)`
-  ${absoluteFullSize}
+  position: absolute;
+  top: ${HEADER_HEIGHT}px;
+  left: 0;
+  width: 100%;
+  height: calc(100% - ${HEADER_HEIGHT}px);
 
   > .scrollable {
     height: 100%;
 
     overflow: auto;
+    ${autoScrollbar}
   }
 `;
 
 function Musicbill({ musicbill }: { musicbill: MusicbillType }) {
-  const { id, status, musicList } = musicbill;
+  const { id, status, musicList, lastUpdateTimestamp } = musicbill;
+  const { keyword = '' } = useQuery<Query.KEYWORD>();
 
   const scrollableRef = useRef<HTMLDivElement>(null);
-  const scrollToTop = useCallback(
-    () =>
-      scrollableRef.current?.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      }),
-    [],
-  );
   const [miniInfoVisible, setMiniInfoVisible] = useState(false);
 
   const saveScrollTop = useMemo(
     () =>
       throttle(
         (scrollTop: number) =>
-          window.sessionStorage.setItem(
-            SessionStorageKey.MUSICBILL_PAGE_SCROLL_TOP.replace('{{id}}', id),
-            scrollTop.toString(),
-          ),
+          cache.set({
+            key: CacheKey.MUSICBILL_PAGE_SCROLL_TOP,
+            value: scrollTop,
+            keyReplace: (k) => k.replace('{{id}}', id),
+          }),
         1000,
       ),
     [id],
   );
 
-  const onScroll: UIEventHandler<HTMLDivElement> = (e) => {
-    const { scrollTop } = e.target as HTMLDivElement;
+  const onScroll: UIEventHandler<HTMLDivElement> = (event) => {
+    const { scrollTop } = event.target as HTMLDivElement;
     setMiniInfoVisible(scrollTop >= INFO_HEIGHT - MINI_INFO_HEIGHT);
 
-    return saveScrollTop(scrollTop);
+    if (!keyword) {
+      saveScrollTop(scrollTop);
+    }
   };
 
   useEffect(() => {
-    if (status === RequestStatus.NOT_START) {
-      playerEventemitter.emit(PlayerEventType.FETCH_MUSICBILL_DETAIL, {
+    if (Date.now() - lastUpdateTimestamp > RELOAD_INTERVAL) {
+      playerEventemitter.emit(PlayerEventType.RELOAD_MUSICBILL, {
         id,
+        silence: true,
       });
     }
-  }, [id, status]);
+  }, [id, lastUpdateTimestamp]);
 
   useLayoutEffect(() => {
     if (status === RequestStatus.SUCCESS) {
-      const lastScrollTopString = window.sessionStorage.getItem(
-        SessionStorageKey.MUSICBILL_PAGE_SCROLL_TOP.replace('{{id}}', id),
-      );
-      if (lastScrollTopString) {
-        scrollableRef.current?.scrollTo({
-          top: Number(lastScrollTopString),
-        });
+      let scrollTop = 0;
+      if (!keyword) {
+        scrollTop =
+          cache.get(CacheKey.MUSICBILL_PAGE_SCROLL_TOP, (k) =>
+            k.replace('{{id}}', id),
+          ) || 0;
       }
+      window.setTimeout(
+        () =>
+          scrollableRef.current?.scrollTo({
+            top: scrollTop,
+          }),
+        0,
+      );
     }
-  }, [id, status]);
+  }, [id, status, keyword]);
 
   return (
     <Style>
       <div className="scrollable" ref={scrollableRef} onScroll={onScroll}>
         <Info musicbill={musicbill} />
-        <MusicList musicbill={musicbill} />
+        <MusicList keyword={keyword} musicbill={musicbill} />
       </div>
 
       {miniInfoVisible ? <MiniInfo musicbill={musicbill} /> : null}
-      {status === RequestStatus.SUCCESS && musicList.length ? (
-        <Filter musicbillId={id} scrollToTop={scrollToTop} />
-      ) : null}
-      <EditMenu musicbill={musicbill} />
+      {status === RequestStatus.SUCCESS && musicList.length ? <Filter /> : null}
     </Style>
   );
 }

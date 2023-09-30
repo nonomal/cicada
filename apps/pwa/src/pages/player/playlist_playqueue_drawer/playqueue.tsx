@@ -7,12 +7,15 @@ import {
   MdOutlineClose,
   MdArrowUpward,
   MdArrowDownward,
+  MdShuffle,
 } from 'react-icons/md';
 import { ComponentSize } from '@/constants/style';
 import { flexCenter } from '@/style/flexbox';
 import Empty from '@/components/empty';
 import absoluteFullSize from '@/style/absolute_full_size';
 import { CSSVariable } from '@/global_style';
+import autoScrollbar from '@/style/auto_scrollbar';
+import { t } from '@/i18n';
 import Context from '../context';
 import TabContent from './tab_content';
 import MusicBase from '../components/music_base';
@@ -21,6 +24,10 @@ import playerEventemitter, {
   EventType as PlayerEventType,
 } from '../eventemitter';
 
+const shuffleStyle: CSSProperties = {
+  width: ComponentSize.SMALL,
+  color: CSSVariable.COLOR_PRIMARY,
+};
 const Style = styled(TabContent)`
   > .content {
     ${absoluteFullSize}
@@ -30,6 +37,7 @@ const Style = styled(TabContent)`
 
     &.list {
       overflow: auto;
+      ${autoScrollbar}
     }
 
     &.empty {
@@ -65,12 +73,20 @@ function Playqueue({ style }: { style: unknown }) {
               return (
                 <MusicBase
                   key={key}
+                  index={queueMusic.index}
                   music={queueMusic}
                   active={actualIndex === currentPlayqueuePosition}
                   lineAfter={
                     <Operation>
+                      {queueMusic.shuffle ? (
+                        <MdShuffle
+                          style={shuffleStyle}
+                          title={t('pick_from_playlist_randomly')}
+                        />
+                      ) : null}
                       {actualIndex === currentPlayqueuePosition ? null : (
                         <IconButton
+                          title={t('relocate_to_here')}
                           size={ComponentSize.SMALL}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -144,7 +160,7 @@ function Playqueue({ style }: { style: unknown }) {
         </div>
       ) : (
         <div className="content empty">
-          <Empty description="空的播放队列" />
+          <Empty description={t('empty_playqueue')} />
         </div>
       )}
     </Style>

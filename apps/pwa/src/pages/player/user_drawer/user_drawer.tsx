@@ -13,6 +13,7 @@ import ErrorCard from '@/components/error_card';
 import Spinner from '@/components/spinner';
 import TabList from '@/components/tab_list';
 import absoluteFullSize from '@/style/absolute_full_size';
+import autoScrollbar from '@/style/auto_scrollbar';
 import { EventType } from '../eventemitter';
 import useDynamicZIndex from '../use_dynamic_z_index';
 import useData from './use_data';
@@ -40,8 +41,7 @@ const TAB_LIST: { label: string; tab: Tab }[] = Object.values(Tab).map(
 );
 const bodyProps: { style: CSSProperties } = {
   style: {
-    width: '90%',
-    maxWidth: 400,
+    width: 'min(85%, 400px)',
   },
 };
 const Container = styled(animated.div)`
@@ -57,6 +57,7 @@ const Style = styled.div`
     ${absoluteFullSize}
 
     overflow: auto;
+    ${autoScrollbar}
 
     > .tab-content {
       position: relative;
@@ -86,7 +87,7 @@ const TabContent = styled(animated.div)`
 function UserDetail({ user }: { user: UserDetailType }) {
   const mountedRef = useRef(false);
   const scrollableRef = useRef<HTMLDivElement>(null);
-  const [tab, setTab] = useState(Tab.MUSICBILL);
+  const [tab, setTab] = useState(Tab.MUSIC);
 
   const [miniInfoVisible, setMiniInfoVisible] = useState(false);
   const onScroll: UIEventHandler<HTMLDivElement> = (e) => {

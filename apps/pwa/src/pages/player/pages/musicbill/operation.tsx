@@ -1,14 +1,20 @@
 import styled from 'styled-components';
 import IconButton from '@/components/icon_button';
-import { MdRefresh, MdPlaylistAdd, MdEdit, MdDownload } from 'react-icons/md';
+import {
+  MdRefresh,
+  MdPlaylistAdd,
+  MdOutlineEdit,
+  MdOutlinePeopleAlt,
+} from 'react-icons/md';
 import { RequestStatus } from '@/constants';
 import notice from '@/utils/notice';
+import { t } from '@/i18n';
+import upperCaseFirstLetter from '#/utils/upper_case_first_letter';
 import playerEventemitter, {
   EventType as PlayerEventType,
 } from '../../eventemitter';
 import { Musicbill } from '../../constants';
 import e, { EventType } from './eventemitter';
-import { exportMusicbill } from '../../utils';
 
 const Style = styled.div`
   display: flex;
@@ -30,27 +36,35 @@ function Operation({ musicbill }: { musicbill: Musicbill }) {
                   musicList,
                 },
               )
-            : notice.error('乐单暂无音乐')
+            : notice.error(upperCaseFirstLetter(t('no_music_in_musicbill')))
         }
       >
         <MdPlaylistAdd />
-      </IconButton>
-      <IconButton onClick={() => exportMusicbill(musicbill.id)}>
-        <MdDownload />
       </IconButton>
       <IconButton
         loading={status === RequestStatus.LOADING}
         disabled={status !== RequestStatus.SUCCESS}
         onClick={() =>
-          playerEventemitter.emit(PlayerEventType.FETCH_MUSICBILL_DETAIL, {
+          playerEventemitter.emit(PlayerEventType.RELOAD_MUSICBILL, {
             id: musicbill.id,
+            silence: false,
           })
         }
       >
         <MdRefresh />
       </IconButton>
       <IconButton onClick={() => e.emit(EventType.OPEN_EDIT_MENU, null)}>
-        <MdEdit />
+        <MdOutlineEdit />
+      </IconButton>
+      <IconButton
+        onClick={() =>
+          playerEventemitter.emit(
+            PlayerEventType.OPEN_MUSICBILL_SHARED_USER_DRAWER,
+            { id: musicbill.id },
+          )
+        }
+      >
+        <MdOutlinePeopleAlt />
       </IconButton>
     </Style>
   );

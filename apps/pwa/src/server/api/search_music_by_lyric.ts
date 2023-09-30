@@ -1,7 +1,11 @@
-import { MusicType } from '#/constants/music';
+import { Response } from '#/server/api/search_music_by_lyric';
 import { prefixServerOrigin } from '@/global_states/setting';
 import { request } from '..';
 
+/**
+ * 通过歌词搜索音乐
+ * @author mebtte<hi@mebtte.com>
+ */
 async function searchMusicByLyric({
   keyword,
   page,
@@ -11,28 +15,7 @@ async function searchMusicByLyric({
   page: number;
   pageSize: number;
 }) {
-  const data = await request<{
-    total: number;
-    musicList: {
-      id: string;
-      type: MusicType;
-      name: string;
-      aliases: string[];
-      cover: string;
-      sq: string;
-      hq: string;
-      ac: string;
-      singers: {
-        id: string;
-        name: string;
-        aliases: string[];
-      }[];
-      lyrics: {
-        id: number;
-        lrc: string;
-      }[];
-    }[];
-  }>({
+  const data = await request<Response>({
     path: '/api/music/search_by_lyric',
     params: { keyword, page, pageSize },
     withToken: true,
@@ -41,10 +24,8 @@ async function searchMusicByLyric({
     ...data,
     musicList: data.musicList.map((m) => ({
       ...m,
+      asset: prefixServerOrigin(m.asset),
       cover: prefixServerOrigin(m.cover),
-      sq: prefixServerOrigin(m.sq),
-      hq: prefixServerOrigin(m.hq),
-      ac: prefixServerOrigin(m.ac),
     })),
   };
 }

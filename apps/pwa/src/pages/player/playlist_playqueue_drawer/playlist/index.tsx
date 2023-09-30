@@ -15,6 +15,7 @@ import { ComponentSize } from '@/constants/style';
 import { CSSVariable } from '@/global_style';
 import Empty from '@/components/empty';
 import { flexCenter } from '@/style/flexbox';
+import autoScrollbar from '@/style/auto_scrollbar';
 import { TAB_LIST_HEIGHT } from '../constants';
 import Context from '../../context';
 import TabContent from '../tab_content';
@@ -36,6 +37,7 @@ const Style = styled(TabContent)`
 
     &.list {
       overflow: auto;
+      ${autoScrollbar}
     }
 
     &.empty {
@@ -87,6 +89,7 @@ function Playlist({ style }: { style: unknown }) {
               return (
                 <MusicBase
                   key={key}
+                  index={music.index}
                   music={music}
                   active={music.id === currentMusic?.id}
                   lineAfter={
@@ -122,7 +125,7 @@ function Playlist({ style }: { style: unknown }) {
                           e.stopPropagation();
                           return playerEventemitter.emit(
                             PlayerEventType.ACTION_REMOVE_PLAYLIST_MUSIC,
-                            { music },
+                            { id: music.id },
                           );
                         }}
                       >

@@ -1,8 +1,11 @@
 import styled from 'styled-components';
 import Input from '@/components/input';
 import { useEffect, useState } from 'react';
+import useNavigate from '@/utils/use_navigate';
+import { Query } from '@/constants';
+import { t } from '@/i18n';
+import upperCaseFirstLetter from '#/utils/upper_case_first_letter';
 import { FILTER_HEIGHT } from './constants';
-import e, { EventType } from './eventemitter';
 
 const Style = styled.div`
   position: absolute;
@@ -24,26 +27,22 @@ const Style = styled.div`
   }
 `;
 
-function Filter({
-  musicbillId,
-  scrollToTop,
-}: {
-  musicbillId: string;
-  scrollToTop: () => void;
-}) {
+function Filter() {
   const [keyword, setKeyword] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      e.emit(EventType.KEYWORD_CHANGE, { keyword });
-      window.setTimeout(scrollToTop, 0);
-    }, 500);
+    const timer = window.setTimeout(
+      () =>
+        navigate({
+          query: {
+            [Query.KEYWORD]: keyword,
+          },
+        }),
+      500,
+    );
     return () => window.clearTimeout(timer);
-  }, [keyword, scrollToTop]);
-
-  useEffect(() => {
-    setKeyword('');
-  }, [musicbillId]);
+  }, [keyword, navigate]);
 
   return (
     <Style>
@@ -52,7 +51,7 @@ function Filter({
         inputProps={{
           value: keyword,
           onChange: (event) => setKeyword(event.target.value),
-          placeholder: '乐单内查找',
+          placeholder: upperCaseFirstLetter(t('find_in_musicbill')),
         }}
       />
     </Style>

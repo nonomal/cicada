@@ -1,3 +1,4 @@
+import { Response } from '#/server/api/search_singer';
 import { prefixServerOrigin } from '@/global_states/setting';
 import { request } from '..';
 
@@ -5,27 +6,18 @@ async function searchSinger({
   keyword,
   page,
   pageSize,
-  minDuration,
+  requestMinimalDuration,
 }: {
   keyword: string;
   page: number;
   pageSize: number;
-  minDuration?: number;
+  requestMinimalDuration?: number;
 }) {
-  const data = await request<{
-    total: number;
-    singerList: {
-      id: string;
-      avatar: string;
-      name: string;
-      aliases: string[];
-      musicCount: number;
-    }[];
-  }>({
+  const data = await request<Response>({
     path: '/api/singer/search',
     params: { keyword, page, pageSize },
     withToken: true,
-    minDuration,
+    requestMinimalDuration,
   });
   return {
     ...data,

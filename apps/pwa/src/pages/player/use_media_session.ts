@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
-import getResizedMusicCover from '@/server/asset/get_resized_music_cover';
+import getResizedImage from '@/server/asset/get_resized_image';
 import e, { EventType } from './eventemitter';
 import { QueueMusic } from './constants';
+
+const COVER_SIZES = [96, 128, 192, 256, 384, 512];
 
 function useMediaSession(music?: QueueMusic) {
   useEffect(() => {
@@ -9,38 +11,13 @@ function useMediaSession(music?: QueueMusic) {
       window.navigator.mediaSession.metadata = new MediaMetadata({
         title: music.name,
         artist: music.singers.map((s) => s.name).join(',') || '未知歌手',
-        artwork: [
-          {
-            src: getResizedMusicCover({ id: music.id, size: 96 }),
-            sizes: '96x96',
-            type: 'image/jpeg',
-          },
-          {
-            src: getResizedMusicCover({ id: music.id, size: 128 }),
-            sizes: '128x128',
-            type: 'image/jpeg',
-          },
-          {
-            src: getResizedMusicCover({ id: music.id, size: 192 }),
-            sizes: '192x192',
-            type: 'image/jpeg',
-          },
-          {
-            src: getResizedMusicCover({ id: music.id, size: 256 }),
-            sizes: '256x256',
-            type: 'image/jpeg',
-          },
-          {
-            src: getResizedMusicCover({ id: music.id, size: 384 }),
-            sizes: '384x384',
-            type: 'image/jpeg',
-          },
-          {
-            src: getResizedMusicCover({ id: music.id, size: 512 }),
-            sizes: '512x512',
-            type: 'image/jpeg',
-          },
-        ],
+        artwork: music.cover
+          ? COVER_SIZES.map((size) => ({
+              src: getResizedImage({ url: music.cover, size }),
+              sizes: `${size}x${size}`,
+              type: 'image/jpeg',
+            }))
+          : [],
       });
       window.navigator.mediaSession.setActionHandler('play', () =>
         e.emit(EventType.ACTION_PLAY, null),

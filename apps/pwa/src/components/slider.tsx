@@ -3,6 +3,8 @@ import {
   HtmlHTMLAttributes,
   PointerEvent,
   PointerEventHandler,
+  ReactNode,
+  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -10,21 +12,21 @@ import styled from 'styled-components';
 import classnames from 'classnames';
 import { IS_TOUCHABLE } from '@/constants/browser';
 import { flexCenter } from '@/style/flexbox';
+import absoluteFullSize from '@/style/absolute_full_size';
 
 const THUMB_SIZE = 24;
 const Style = styled.div`
   position: relative;
 
   height: 5px;
-  background-color: rgb(145 222 202);
+  background-color: ${CSSVariable.BACKGROUND_COLOR_LEVEL_THREE};
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-
-  transform-origin: bottom;
+  touch-action: none;
   transition: 100ms;
 
   > .progress {
-    height: 100%;
+    ${absoluteFullSize}
 
     background-color: ${CSSVariable.COLOR_PRIMARY};
     transform-origin: left;
@@ -68,15 +70,17 @@ function Slider({
   onChange,
   max = 1,
   className,
+  secondTrack,
   ...props
 }: Omit<HtmlHTMLAttributes<HTMLDivElement>, 'onChange'> & {
   current: number;
   onChange?: (v: number) => void;
   max?: number;
+  secondTrack?: ReactNode;
 }) {
   const pointerDownRef = useRef(false);
 
-  const [innerPercent, setInnerPercent] = useState<number | undefined>(
+  const [shadowPercent, setShadowPercent] = useState<number | undefined>(
     undefined,
   );
 
@@ -86,12 +90,12 @@ function Slider({
     pointerDownRef.current = true;
 
     const percent = getPointerEventRelativePercent(e);
-    setInnerPercent(percent);
+    setShadowPercent(percent);
   };
   const onPointerMove: PointerEventHandler<HTMLDivElement> = (e) => {
     if (pointerDownRef.current) {
       const percent = getPointerEventRelativePercent(e);
-      setInnerPercent(percent);
+      setShadowPercent(percent);
     }
   };
   const onPointerUp: PointerEventHandler<HTMLDivElement> = (e) => {
@@ -101,10 +105,19 @@ function Slider({
     // eslint-disable-next-line no-unused-expressions
     onChange && onChange(max * percent);
 
-    window.setTimeout(() => setInnerPercent(undefined), 0);
+    window.setTimeout(() => setShadowPercent(undefined), 0);
   };
 
-  const actualPercent = innerPercent ?? current / max;
+  useEffect(() => {
+    const onLeaveDocument = () => {
+      pointerDownRef.current = false;
+      window.setTimeout(() => setShadowPercent(undefined), 0);
+    };
+    document.addEventListener('mouseleave', onLeaveDocument);
+    return () => document.removeEventListener('mouseleave', onLeaveDocument);
+  }, []);
+
+  const actualPercent = shadowPercent ?? current / max;
   return (
     <Style
       {...props}
@@ -118,6 +131,7 @@ function Slider({
       onPointerUp={onPointerUp}
       onPointerMove={onPointerMove}
     >
+      {secondTrack}
       <div
         className="progress"
         style={{

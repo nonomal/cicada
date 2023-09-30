@@ -8,11 +8,15 @@ import { EMAIL } from '#/constants/regexp';
 import styled from 'styled-components';
 import notice from '@/utils/notice';
 import Input from '@/components/input';
-import logger from '#/utils/logger';
+import logger from '@/utils/logger';
 import storage, { Key } from '@/storage';
 import Button, { Variant } from '@/components/button';
 import useEvent from '@/utils/use_event';
-import CaptchaDialog from './captcha_dialog';
+import dialog from '@/utils/dialog';
+import getLoginCode from '@/server/base/get_login_code';
+import ErrorWithCode from '@/utils/error_with_code';
+import { ExceptionCode } from '#/constants/exception';
+import { t } from '@/i18n';
 import Logo from '../logo';
 import Paper from '../paper';
 import SettingDialog from './setting_dialog';
@@ -23,13 +27,7 @@ const Style = styled(Paper)`
   gap: 20px;
 `;
 
-function EmailPanel({
-  updateEmail,
-  toNext,
-}: {
-  updateEmail: (email: string) => void;
-  toNext: () => void;
-}) {
+function EmailPanel({ toNext }: { toNext: (email: string) => void }) {
   const [email, setEmail] = useState('');
   const onEmailChange: ChangeEventHandler<HTMLInputElement> = (event) =>
     setEmail(event.target.value);
@@ -38,27 +36,49 @@ function EmailPanel({
   const openSettingDialog = useEvent(() => setSettingDialogOpen(true));
   const closeSettingDialog = useEvent(() => setSettingDialogOpen(false));
 
-  const [captchaDialogOpen, setCaptchaDialogOpen] = useState(false);
-  const openCaptchaDialog = () => {
-    if (!email.length) {
-      return notice.error('请输入邮箱');
-    }
+  const onGetLoginCode = () => {
     if (!EMAIL.test(email)) {
-      return notice.error('邮箱格式错误');
+      return notice.error(t('please_enter_valid_email'));
     }
-    return setCaptchaDialogOpen(true);
+    return dialog.captcha({
+      confirmText: t('get_login_code'),
+      confirmVariant: Variant.PRIMARY,
+      onConfirm: async ({ captchaId, captchaValue }) => {
+        try {
+          await getLoginCode({
+            email,
+            captchaId,
+            captchaValue,
+          });
+          notice.info(t('login_code_emailed'));
+          toNext(email);
+        } catch (error) {
+          logger.error(error, 'Failed to get login code');
+
+          const { code, message } = error as ErrorWithCode<ExceptionCode>;
+          notice.error(message);
+          switch (code) {
+            case ExceptionCode.ALREADY_GOT_LOGIN_CODE_BEFORE: {
+              toNext(email);
+              break;
+            }
+            default: {
+              /**
+               * prevent closing captcha dialog
+               * @author mebtte<hi@mebtte.com>
+               */
+              return false;
+            }
+          }
+        }
+      },
+    });
   };
-  const closeCaptchaDialog = () => setCaptchaDialogOpen(false);
 
   const onKeyDown: KeyboardEventHandler<HTMLInputElement> = (event) => {
     if (event.key === 'Enter') {
-      openCaptchaDialog();
+      onGetLoginCode();
     }
-  };
-
-  const toNextWrapper = () => {
-    closeCaptchaDialog();
-    return toNext();
   };
 
   useEffect(() => {
@@ -69,7 +89,7 @@ function EmailPanel({
           setEmail(lastLoginEmail);
         }
       })
-      .catch((error) => logger.error(error, '查找上次登录邮箱失败'));
+      .catch((error) => logger.error(error, 'Failed to load last login email'));
   }, []);
 
   return (
@@ -77,7 +97,7 @@ function EmailPanel({
       <Style>
         <Logo />
         <Input
-          label="邮箱"
+          label={t('email')}
           inputProps={{
             type: 'email',
             value: email,
@@ -88,20 +108,13 @@ function EmailPanel({
         />
         <Button
           variant={Variant.PRIMARY}
-          onClick={openCaptchaDialog}
+          onClick={onGetLoginCode}
           disabled={!email.length}
         >
-          继续
+          {t('continue')}
         </Button>
-        <Button onClick={openSettingDialog}>设置</Button>
+        <Button onClick={openSettingDialog}>{t('setting')}</Button>
       </Style>
-      <CaptchaDialog
-        open={captchaDialogOpen}
-        email={email}
-        updateEmail={updateEmail}
-        toNext={toNextWrapper}
-        onClose={closeCaptchaDialog}
-      />
       <SettingDialog open={settingDialogOpen} onClose={closeSettingDialog} />
     </>
   );

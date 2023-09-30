@@ -1,86 +1,105 @@
 import { CSSVariable } from '@/global_style';
+import {
+  MdAccessTime,
+  MdFilePresent,
+  MdOutlineCalendarToday,
+  MdOutlineLocalFireDepartment,
+  MdOutlinePostAdd,
+} from 'react-icons/md';
 import styled from 'styled-components';
-import Tag, { Type } from '@/components/tag';
-import Cover from '@/components/cover';
-import { MdOutlineLocalFireDepartment } from 'react-icons/md';
 import { MusicDetail } from './constants';
+import Tag from './tag';
 
 const Style = styled.div`
-  position: relative;
+  margin-top: 10px;
 
-  > .info {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    max-width: 80%;
+  > .name {
+    margin: 0 20px;
 
-    padding: 10px 20px;
-    background-color: rgb(255 255 255 / 0.75);
-
-    > .tag-box {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    > .name {
-      font-size: 28px;
-      font-weight: bold;
-      color: ${CSSVariable.TEXT_COLOR_PRIMARY};
-    }
-
-    > .aliases {
-      font-size: 14px;
-      color: ${CSSVariable.TEXT_COLOR_SECONDARY};
-    }
+    font-size: 28px;
+    font-weight: bold;
+    color: ${CSSVariable.TEXT_COLOR_PRIMARY};
   }
 
-  > .heat {
-    position: absolute;
-    bottom: 0;
-    right: 0;
+  > .aliases {
+    margin: 0 20px 5px 20px;
 
-    padding: 3px 5px 7px 5px;
+    font-size: 14px;
+    color: ${CSSVariable.TEXT_COLOR_SECONDARY};
+  }
+
+  > .tags {
+    margin: 0 20px 5px 20px;
 
     display: flex;
     align-items: center;
-    gap: 3px;
-
-    font-size: 12px;
-    color: ${CSSVariable.TEXT_COLOR_PRIMARY};
-    background-color: rgb(255 255 255 / 0.75);
+    flex-wrap: wrap;
+    gap: 5px 10px;
   }
 `;
+const formatDuration = (duration: number) => {
+  const minute = Math.floor(duration / 60);
+  const second = Math.floor(duration % 60);
+  return `${minute > 9 ? minute : `0${minute}`}:${
+    second > 9 ? second : `0${second}`
+  }`;
+};
 
-function Info({ music }: { music: MusicDetail }) {
+function Info2({ music }: { music: MusicDetail }) {
+  const assetParts = music.asset.split('.');
+  const assetFormat = assetParts[assetParts.length - 1];
   return (
     <Style>
-      <Cover src={music.cover} size="100%" />
-      <div className="info">
-        {music.hq || music.ac ? (
-          <div className="tag-box">
-            {music.hq ? <Tag type={Type.HQ} /> : null}
-            {music.ac ? <Tag type={Type.AC} /> : null}
-          </div>
+      <div className="name">{music.name}</div>
+      {music.aliases.length ? (
+        <div className="aliases">
+          {music.aliases.map((alias, index) => (
+            <div className="alias" key={index}>
+              {alias}
+            </div>
+          ))}
+        </div>
+      ) : null}
+      <div className="tags">
+        {music.year ? (
+          <Tag
+            title="发行年份"
+            icon={<MdOutlineCalendarToday />}
+            text={music.year}
+          />
         ) : null}
-        <div className="name">{music.name}</div>
-        {music.aliases.length ? (
-          <div className="aliases">
-            {music.aliases.map((alias, index) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <div className="alias" key={index}>
-                {alias}
-              </div>
-            ))}
-          </div>
+        {music.duration ? (
+          <Tag
+            title="时长"
+            icon={<MdAccessTime />}
+            text={formatDuration(music.duration)}
+          />
         ) : null}
-      </div>
-      <div className="heat" title="热度">
-        <MdOutlineLocalFireDepartment />
-        {music.heat}
+        {music.size ? (
+          <Tag
+            title="文件大小"
+            icon={<MdFilePresent />}
+            text={`${(music.size / 1024 / 1024).toFixed(2)}MB`}
+          />
+        ) : null}
+        <Tag
+          title="文件类型"
+          icon={<MdFilePresent />}
+          text={assetFormat.toUpperCase()}
+        />
+        <Tag
+          title="加入乐单数量"
+          icon={<MdOutlinePostAdd />}
+          text={music.musicbillCount}
+        />
+        <Tag
+          title="热度"
+          icon={<MdOutlineLocalFireDepartment />}
+          text={music.heat}
+        />
       </div>
     </Style>
   );
 }
 
-export default Info;
+export default Info2;

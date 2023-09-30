@@ -6,23 +6,22 @@ type KeyMapValue = {
   [AllowUpdateKey.NAME]: string;
   [AllowUpdateKey.LYRIC]: string[];
   [AllowUpdateKey.ALIASES]: string[];
-  [AllowUpdateKey.SQ]: string;
-  [AllowUpdateKey.HQ]: string;
-  [AllowUpdateKey.AC]: string;
+  [AllowUpdateKey.ASSET]: string;
   [AllowUpdateKey.SINGER]: string[];
   [AllowUpdateKey.FORK_FROM]: string[];
+  [AllowUpdateKey.YEAR]: number;
 };
 
 function updateMusic<Key extends AllowUpdateKey>({
   id,
   key,
   value,
-  minDuration,
+  requestMinimalDuration,
 }: {
   id: string;
   key: Key;
   value: KeyMapValue[Key];
-  minDuration?: number;
+  requestMinimalDuration?: number;
 }) {
   return request({
     path: '/api/music',
@@ -33,7 +32,7 @@ function updateMusic<Key extends AllowUpdateKey>({
       value,
     },
     withToken: true,
-    minDuration,
+    requestMinimalDuration,
   });
 }
 

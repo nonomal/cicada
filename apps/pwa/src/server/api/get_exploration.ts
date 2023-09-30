@@ -1,30 +1,13 @@
 import { prefixServerOrigin } from '@/global_states/setting';
+import { Response } from '#/server/api/get_exploration';
 import { request } from '..';
 
+/**
+ * 获取发现内容
+ * @author mebtte<hi@mebtte.com>
+ */
 async function getExploration() {
-  const data = await request<{
-    musicList: {
-      id: string;
-      name: string;
-      cover: string;
-      singers: {
-        id: string;
-        name: string;
-      }[];
-    }[];
-    singerList: {
-      id: string;
-      name: string;
-      aliases: string[];
-      avatar: string;
-    }[];
-    musicbillList: {
-      id: string;
-      name: string;
-      cover: string;
-      user: { id: string; nickname: string };
-    }[];
-  }>({
+  const data = await request<Response>({
     path: '/api/exploration',
     withToken: true,
   });
@@ -37,7 +20,7 @@ async function getExploration() {
       ...s,
       avatar: prefixServerOrigin(s.avatar),
     })),
-    musicbillList: data.musicbillList.map((mb) => ({
+    publicMusicbillList: data.publicMusicbillList.map((mb) => ({
       ...mb,
       cover: prefixServerOrigin(mb.cover),
     })),

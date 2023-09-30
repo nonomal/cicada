@@ -1,36 +1,13 @@
-import { MusicType } from '#/constants/music';
+import { Response } from '#/server/api/get_public_musicbill';
 import { prefixServerOrigin } from '@/global_states/setting';
 import { request } from '..';
 
+/**
+ * 获取公开乐单详情
+ * @author mebtte<hi@mebtte.com>
+ */
 async function getPublicMusicbill(id: string) {
-  const musicbill = await request<{
-    id: string;
-    cover: string;
-    name: string;
-    createTimestamp: number;
-    user: {
-      id: string;
-      nickname: string;
-      avatar: string;
-    };
-    musicList: {
-      id: string;
-      type: MusicType;
-      name: string;
-      aliases: string[];
-      cover: string;
-      sq: string;
-      hq: string;
-      ac: string;
-      singers: {
-        id: string;
-        name: string;
-        aliases: string[];
-      }[];
-    }[];
-
-    collected: boolean;
-  }>({
+  const musicbill = await request<Response>({
     path: '/api/public_musicbill',
     params: { id },
     withToken: true,
@@ -38,16 +15,10 @@ async function getPublicMusicbill(id: string) {
   return {
     ...musicbill,
     cover: prefixServerOrigin(musicbill.cover),
-    user: {
-      ...musicbill.user,
-      avatar: prefixServerOrigin(musicbill.user.avatar),
-    },
     musicList: musicbill.musicList.map((m) => ({
       ...m,
       cover: prefixServerOrigin(m.cover),
-      sq: prefixServerOrigin(m.sq),
-      hq: prefixServerOrigin(m.hq),
-      ac: prefixServerOrigin(m.ac),
+      asset: prefixServerOrigin(m.asset),
     })),
   };
 }

@@ -10,10 +10,12 @@ import {
 import { PLAYER_PATH, ROOT_PATH } from '@/constants/route';
 import useNavigate from '@/utils/use_navigate';
 import Input from '@/components/input';
-import mm from '@/global_states/mini_mode';
+import theme from '@/global_states/theme';
 import { Query } from '@/constants';
 import { useLocation } from 'react-router-dom';
 import parseSearch from '@/utils/parse_search';
+import { t } from '@/i18n';
+import capitalize from '#/utils/capitalize';
 import eventemitter, { EventType } from '../eventemitter';
 
 const style: CSSProperties = {
@@ -25,9 +27,9 @@ const style: CSSProperties = {
 function Wrapper() {
   const navigate = useNavigate();
   const location = useLocation();
-  const miniMode = mm.useState();
+  const { miniMode } = theme.useState();
 
-  const ref = useRef<{ root: HTMLDivElement; input: HTMLInputElement }>(null);
+  const ref = useRef<{ root: HTMLLabelElement; input: HTMLInputElement }>(null);
 
   const [keyword, setKeyword] = useState(
     () => parseSearch<Query.KEYWORD>(location.search)[Query.KEYWORD] || '',
@@ -75,7 +77,7 @@ function Wrapper() {
         value: keyword,
         onChange: onKeywordChange,
         onKeyDown,
-        placeholder: '搜索',
+        placeholder: capitalize(t('search')),
       }}
     />
   );

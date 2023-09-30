@@ -6,7 +6,7 @@ import styled from 'styled-components';
 import ErrorCard from '@/components/error_card';
 import List from 'react-list';
 import Empty from '@/components/empty';
-import { useContext, useEffect, useState } from 'react';
+import { useContext } from 'react';
 import { Musicbill } from '../../constants';
 import { FILTER_HEIGHT, INFO_HEIGHT } from './constants';
 import playerEventemitter, {
@@ -14,7 +14,6 @@ import playerEventemitter, {
 } from '../../eventemitter';
 import Music from '../../components/music';
 import Context from '../../context';
-import e, { EventType } from './eventemitter';
 import { filterMusic } from '../../utils';
 
 const Style = styled.div`
@@ -36,48 +35,42 @@ const ListContainer = styled(Container)`
   padding-bottom: ${FILTER_HEIGHT}px;
 `;
 
-function Wrapper({ musicbill }: { musicbill: Musicbill }) {
-  const { id, status, error, musicList } = musicbill;
+function Wrapper({
+  keyword,
+  musicbill,
+}: {
+  keyword: string;
+  musicbill: Musicbill;
+}) {
   const { playqueue, currentPlayqueuePosition } = useContext(Context);
 
-  const [keyword, setKeyword] = useState('');
-
-  useEffect(() => {
-    setKeyword('');
-  }, [id]);
-
-  useEffect(() => {
-    const unlistenKeywordChange = e.listen(EventType.KEYWORD_CHANGE, (data) =>
-      setKeyword(data.keyword),
-    );
-    return unlistenKeywordChange;
-  }, []);
-
-  const transitions = useTransition(status, {
+  const transitions = useTransition(musicbill, {
     from: { opacity: 0 },
     enter: { opacity: 1 },
     leave: { opacity: 0 },
   });
   return (
     <Style>
-      {transitions((style, s) => {
-        if (s === RequestStatus.ERROR) {
-          <StatusContainer style={style}>
-            <ErrorCard
-              errorMessage={error!.message}
-              retry={() =>
-                playerEventemitter.emit(
-                  PlayerEventType.FETCH_MUSICBILL_DETAIL,
-                  { id },
-                )
-              }
-            />
-          </StatusContainer>;
+      {transitions((style, mb) => {
+        if (mb.status === RequestStatus.ERROR) {
+          return (
+            <StatusContainer style={style}>
+              <ErrorCard
+                errorMessage={mb.error!.message}
+                retry={() =>
+                  playerEventemitter.emit(PlayerEventType.RELOAD_MUSICBILL, {
+                    id: mb.id,
+                    silence: false,
+                  })
+                }
+              />
+            </StatusContainer>
+          );
         }
 
-        if (s === RequestStatus.SUCCESS) {
-          if (musicList.length) {
-            const filteredMusicList = musicList.filter((music) =>
+        if (mb.status === RequestStatus.SUCCESS) {
+          if (mb.musicList.length) {
+            const filteredMusicList = mb.musicList.filter((music) =>
               filterMusic(music, keyword),
             );
             if (filteredMusicList.length) {
@@ -92,6 +85,7 @@ function Wrapper({ musicbill }: { musicbill: Musicbill }) {
                       return (
                         <Music
                           key={key}
+                          index={music.index}
                           music={music}
                           active={
                             playqueue[currentPlayqueuePosition]?.id === music.id

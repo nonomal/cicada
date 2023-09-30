@@ -1,9 +1,10 @@
 import styled, { css } from 'styled-components';
 import { HtmlHTMLAttributes, ReactNode } from 'react';
+import capitalize from '@/style/capitalize';
 import { CSSVariable } from '../global_style';
 
 const Style = styled.div<{ active: boolean }>`
-  padding: 8px 20px;
+  padding: 8px 10px;
 
   display: flex;
   align-items: center;
@@ -13,9 +14,11 @@ const Style = styled.div<{ active: boolean }>`
   user-select: none;
   cursor: pointer;
   transition: all 300ms;
+  touch-action: none;
 
   > .label {
     font-size: 14px;
+    ${capitalize}
   }
 
   > svg {

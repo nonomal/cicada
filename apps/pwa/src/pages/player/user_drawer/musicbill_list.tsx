@@ -5,6 +5,7 @@ import ellipsis from '@/style/ellipsis';
 import { MdOutlineMusicNote } from 'react-icons/md';
 import Empty from '@/components/empty';
 import { CSSProperties } from 'react';
+import { t } from '@/i18n';
 import { UserDetail } from './constants';
 import playerEventemitter, {
   EventType as PlayerEventType,
@@ -12,7 +13,7 @@ import playerEventemitter, {
 
 type MusicbillType = UserDetail['musicbillList'][0];
 const Root = styled.div`
-  min-height: 100vh;
+  min-height: 100dvb;
   padding: 0 10px 10px 10px;
 
   font-size: 0;
@@ -73,7 +74,7 @@ function Musicbill({ musicbill }: { musicbill: MusicbillType }) {
   return (
     <Style
       onClick={() =>
-        playerEventemitter.emit(PlayerEventType.OPEN_MUSICBILL_DRAWER, {
+        playerEventemitter.emit(PlayerEventType.OPEN_PUBLIC_MUSICBILL_DRAWER, {
           id: musicbill.id,
         })
       }
@@ -100,7 +101,7 @@ function MusicbillList({ musicbillList }: { musicbillList: MusicbillType[] }) {
       </Root>
     );
   }
-  return <Empty style={emptyStyle} description="暂无公开歌单" />;
+  return <Empty style={emptyStyle} description={t('no_public_musicbill')} />;
 }
 
 export default MusicbillList;

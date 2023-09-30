@@ -1,20 +1,31 @@
 import { SEARCH_KEYWORD_MAX_LENGTH } from '#/constants/music';
-import logger from '#/utils/logger';
+import logger from '@/utils/logger';
 import { Query } from '@/constants';
 import searchMusic from '@/server/api/search_music';
 import useQuery from '@/utils/use_query';
 import { useCallback, useEffect, useState } from 'react';
-import { MusicWithIndex } from '../../../constants';
+import { MusicWithSingerAliases } from '../../../constants';
 import { PAGE_SIZE } from '../constants';
 
-type Data = {
-  error: Error | null;
-  loading: boolean;
-  value: {
-    total: number;
-    musicList: MusicWithIndex[];
-  } | null;
-};
+type Data =
+  | {
+      error: null;
+      loading: true;
+      value: null;
+    }
+  | {
+      error: Error;
+      loading: false;
+      value: null;
+    }
+  | {
+      error: null;
+      loading: false;
+      value: {
+        total: number;
+        musicList: MusicWithSingerAliases[];
+      };
+    };
 const dataLoading: Data = {
   error: null,
   loading: true,
@@ -24,7 +35,7 @@ const dataLoading: Data = {
 export default () => {
   const { keyword = '', page } = useQuery<Query.KEYWORD | Query.PAGE>();
   const pageNumber = (page ? Number(page) : 1) || 1;
-  const [data, setData] = useState(dataLoading);
+  const [data, setData] = useState<Data>(dataLoading);
   const getData = useCallback(async () => {
     setData(dataLoading);
     try {

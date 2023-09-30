@@ -19,6 +19,8 @@ export enum CSSVariable {
   BACKGROUND_COLOR_LEVEL_ONE = 'var(--background-color-level-one)',
   BACKGROUND_COLOR_LEVEL_TWO = 'var(--background-color-level-two)',
   BACKGROUND_COLOR_LEVEL_THREE = 'var(--background-color-level-three)',
+  BACKGROUND_COLOR_LEVEL_FOUR = 'var(--background-color-level-four)',
+  BACKGROUND_COLOR_LEVEL_FIVE = 'var(--background-color-level-five)',
 }
 
 const CSS_VARIABLE_MAP_VALUE: Record<CSSVariable, string> = {
@@ -26,7 +28,7 @@ const CSS_VARIABLE_MAP_VALUE: Record<CSSVariable, string> = {
   [CSSVariable.COLOR_PRIMARY_DISABLED]: '#7bd5b0',
   [CSSVariable.COLOR_PRIMARY_ACTIVE]: '#1d8b5e',
   [CSSVariable.COLOR_DANGEROUS]: '#f25042',
-  [CSSVariable.COLOR_BORDER]: 'rgb(222 222 222)',
+  [CSSVariable.COLOR_BORDER]: 'rgb(232 232 232)',
 
   [CSSVariable.TEXT_SIZE_NORMAL]: '16px',
   [CSSVariable.TEXT_SIZE_MEDIUM]: '14px',
@@ -40,6 +42,8 @@ const CSS_VARIABLE_MAP_VALUE: Record<CSSVariable, string> = {
   [CSSVariable.BACKGROUND_COLOR_LEVEL_ONE]: 'rgb(44 182 125 / 0.06)',
   [CSSVariable.BACKGROUND_COLOR_LEVEL_TWO]: 'rgb(44 182 125 / 0.1)',
   [CSSVariable.BACKGROUND_COLOR_LEVEL_THREE]: 'rgb(44 182 125 / 0.14)',
+  [CSSVariable.BACKGROUND_COLOR_LEVEL_FOUR]: 'rgb(44 182 125 / 0.18)',
+  [CSSVariable.BACKGROUND_COLOR_LEVEL_FIVE]: 'rgb(44 182 125 / 0.22)',
 };
 
 export const GlobalStyle = createGlobalStyle`
